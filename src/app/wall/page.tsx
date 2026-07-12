@@ -1,6 +1,7 @@
 import { WallGrid } from '@/components/wall/wall-grid';
 import { Navbar } from '@/components/landing/navbar';
 import { FloatingBackground } from '@/components/landing/floating-background';
+import { createClient } from '@/lib/supabase/server';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -8,7 +9,12 @@ export const metadata: Metadata = {
   description: 'رسائل حقيقية اختار أصحابها ينشروها على قولها',
 };
 
-export default function WallPage() {
+export default async function WallPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <>
       <FloatingBackground />
@@ -18,7 +24,7 @@ export default function WallPage() {
           <h1 className="font-display text-3xl font-extrabold text-brand-950 dark:text-white">الحائط العام</h1>
           <p className="mt-2 text-brand-700/80 dark:text-brand-200/80">رسائل حقيقية اختار أصحابها ينشروها</p>
         </div>
-        <WallGrid />
+        <WallGrid viewerId={user?.id} />
       </div>
     </>
   );

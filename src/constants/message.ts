@@ -24,6 +24,7 @@ export const MOOD_META: Record<MessageMood, { label: string; emoji: string }> = 
   calm:       { label: 'هادئ',   emoji: '😌' },
 };
 
-export const REACTION_EMOJIS: ReactionEmoji[] = ['❤️', '😂', '👏', '😮', '😢', '🔥'];
+// Milestone 1: five reactions backed by message_reactions (see domain.ts)
+export const REACTION_EMOJIS: ReactionEmoji[] = ['❤️', '😂', '🥺', '👏', '🔥'];
 
 export const ANONYMITY_NOTICE = 'لن نظهر هويتك للشخص المستقبل.';

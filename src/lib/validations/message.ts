@@ -34,3 +34,27 @@ export const reportMessageSchema = z.object({
 });
 
 export type ReportMessageInput = z.infer<typeof reportMessageSchema>;
+
+// Milestone 1: comments and replies
+
+export const commentSchema = z.object({
+  messageId: z.string().uuid(),
+  content: z
+    .string()
+    .trim()
+    .min(1, 'اكتب تعليق الأول')
+    .max(300, 'التعليق أطول من 300 حرف'),
+});
+
+export type CommentInput = z.infer<typeof commentSchema>;
+
+export const replySchema = z.object({
+  messageId: z.string().uuid(),
+  content: z
+    .string()
+    .trim()
+    .min(1, 'اكتب ردك الأول')
+    .max(MESSAGE_MAX_LENGTH, `الرد أطول من ${MESSAGE_MAX_LENGTH} حرف`),
+});
+
+export type ReplyInput = z.infer<typeof replySchema>;

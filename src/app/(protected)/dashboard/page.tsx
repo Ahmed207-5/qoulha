@@ -5,10 +5,24 @@ import { WeeklyActivityChart } from '@/components/dashboard/weekly-activity-char
 import { MessageCard } from '@/components/message/message-card';
 import { Inbox, MailOpen, CalendarDays, TrendingUp, Eye, Share2 } from 'lucide-react';
 import { CATEGORY_META, MOOD_META } from '@/constants/message';
-import type { InboxMessage } from '@/types/domain';
+import type { InboxMessage, Reply } from '@/types/domain';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'لوحة التحكم' };
+
+interface RecentMessageRow {
+  id: string;
+  recipient_id: string;
+  content: string;
+  category: InboxMessage['category'];
+  mood: InboxMessage['mood'];
+  is_read: boolean;
+  is_favorited: boolean;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+  replies: Reply | Reply[] | null;
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -22,12 +36,28 @@ export default async function DashboardPage() {
     getWeeklyMessageCounts(user.id),
     supabase
       .from('messages')
-      .select('id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at')
+      .select(
+        'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at, replies(id, message_id, author_id, content, created_at, updated_at)'
+      )
       .eq('recipient_id', user.id)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(5),
   ]);
+
+  const recentMessages: InboxMessage[] = (recent as unknown as RecentMessageRow[] | null ?? []).map((row) => ({
+    id: row.id,
+    recipient_id: row.recipient_id,
+    content: row.content,
+    category: row.category,
+    mood: row.mood,
+    is_read: row.is_read,
+    is_favorited: row.is_favorited,
+    is_published: row.is_published,
+    published_at: row.published_at,
+    created_at: row.created_at,
+    reply: Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies,
+  }));
 
   return (
     <div className="space-y-6">
@@ -71,9 +101,9 @@ export default async function DashboardPage() {
 
       <div>
         <h2 className="mb-3 font-display text-lg font-bold text-brand-950 dark:text-white">آخر الرسائل</h2>
-        {recent && recent.length > 0 ? (
+        {recentMessages.length > 0 ? (
           <div className="space-y-3">
-            {(recent as InboxMessage[]).map((msg) => (
+            {recentMessages.map((msg) => (
               <MessageCard key={msg.id} message={msg} />
             ))}
           </div>
