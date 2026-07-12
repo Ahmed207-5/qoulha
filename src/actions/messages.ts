@@ -58,14 +58,9 @@ export async function sendMessageAction(formData: unknown): Promise<ActionResult
     is_flagged: flagged,
   });
 
- if (error) {
-  console.error('SUPABASE INSERT ERROR:', error);
-
- return {
-  success: false,
-  error: 'حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى',
-};
-}
+  if (error) {
+    return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى' };
+  }
 
   return { success: true };
 }

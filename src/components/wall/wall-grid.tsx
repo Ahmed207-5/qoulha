@@ -9,13 +9,13 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Input } from '@/components/ui/form-elements';
 import { Search, Loader2 } from 'lucide-react';
 
-export function WallGrid() {
+export function WallGrid({ viewerId }: { viewerId?: string }) {
   const [search, setSearch] = React.useState('');
   const debouncedSearch = useDebouncedValue(search, 350);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['wall', debouncedSearch],
-    queryFn: ({ pageParam }) => getWallMessagesAction({ cursor: pageParam, search: debouncedSearch }),
+    queryFn: ({ pageParam }) => getWallMessagesAction({ cursor: pageParam, search: debouncedSearch, viewerId }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
@@ -45,7 +45,7 @@ export function WallGrid() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {messages.map((msg) => (
-              <WallMessageCard key={msg.id} message={msg} />
+              <WallMessageCard key={msg.id} message={msg} viewerId={viewerId} />
             ))}
           </div>
           <div ref={triggerRef} className="flex justify-center py-6">

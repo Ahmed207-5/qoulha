@@ -118,25 +118,3 @@ export async function reportMessageAction(formData: unknown): Promise<ActionResu
   if (error) return { success: false, error: 'حدث خطأ أثناء الإبلاغ' };
   return { success: true };
 }
-
-export async function addReactionAction(messageId: string, emoji: string, fingerprint: string): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { error } = await supabase.from('reactions').insert({
-    message_id: messageId,
-    reactor_fingerprint: fingerprint,
-    reactor_user_id: user?.id ?? null,
-    emoji,
-  });
-
-  if (error) {
-    // unique constraint violation = already reacted with this emoji — not a real error
-    if (error.code === '23505') return { success: true };
-    return { success: false, error: 'حدث خطأ' };
-  }
-  revalidatePath('/wall');
-  return { success: true };
-}

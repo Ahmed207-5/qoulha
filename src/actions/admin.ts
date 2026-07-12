@@ -55,11 +55,27 @@ export async function deleteReportedMessageAction(messageId: string, reportId: s
   if ('error' in admin) return { success: false, error: admin.error };
 
   const supabase = await createClient();
-  await supabase.from('messages').update({ is_deleted: true, is_published: false }).eq('id', messageId);
-  await supabase
+
+  // .select() lets us confirm the update actually affected the message,
+  // rather than silently reporting success while the reported message
+  // stayed exactly as it was (see 0013_fix_admin_message_moderation.sql —
+  // this update previously always matched zero rows).
+  const { data, error } = await supabase
+    .from('messages')
+    .update({ is_deleted: true, is_published: false })
+    .eq('id', messageId)
+    .select('id');
+
+  if (error || !data || data.length === 0) {
+    return { success: false, error: 'تعذر حذف الرسالة المُبلّغ عنها' };
+  }
+
+  const { error: reportError } = await supabase
     .from('reports')
     .update({ status: 'actioned', reviewed_by: admin.userId, reviewed_at: new Date().toISOString() })
     .eq('id', reportId);
+
+  if (reportError) return { success: false, error: 'اتحذفت الرسالة لكن حصل خطأ في تحديث حالة البلاغ' };
 
   revalidatePath('/admin/reports');
   return { success: true };

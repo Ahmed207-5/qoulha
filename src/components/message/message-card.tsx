@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { toggleFavoriteAction, togglePublishAction, deleteMessageAction, markMessageReadAction } from '@/actions/message-mutations';
 import { toast } from 'sonner';
 import { ReportDialog } from './report-dialog';
+import { ReplyManager } from './reply-manager';
 
 export function MessageCard({ message, onDeleted }: { message: InboxMessage; onDeleted?: (id: string) => void }) {
   const [msg, setMsg] = React.useState(message);
@@ -118,6 +119,9 @@ export function MessageCard({ message, onDeleted }: { message: InboxMessage; onD
       </div>
 
       <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">{msg.content}</p>
+
+      {/* Milestone 1: only makes sense once published — RLS requires it too */}
+      {msg.is_published && <ReplyManager messageId={msg.id} initialReply={msg.reply} />}
 
       <div className="mt-4 flex items-center justify-between">
         <span className="text-[11px] text-brand-500/60">

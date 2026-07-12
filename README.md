@@ -26,8 +26,11 @@ cp .env.example .env.local   # fill in Supabase + Turnstile + Upstash keys
    supabase link --project-ref <your-project-ref>
    supabase db push
    ```
-   This applies `supabase/migrations/0001_init_schema.sql` (tables, enums,
-   triggers) and `0002_rls_policies.sql` (row-level security).
+   This applies all files in `supabase/migrations/` in numeric order — core
+   schema and RLS (`0001`–`0004`), Milestone 1 social features (`0005`–`0008`),
+   and four corrective fixes found during production review (`0009`–`0013`,
+   see `CHANGELOG.md`). Migrations must run in numeric order; each depends
+   on objects created by earlier ones.
 3. In Authentication settings, enable Email and Google providers.
 4. Generate types after any schema change:
    ```bash
@@ -53,3 +56,10 @@ npm run dev
   never imported from a Client Component.
 - Sender identity columns are revoked at the Postgres grant level, not just
   filtered in application code — see `ARCHITECTURE.md`.
+- Turnstile captcha is bypassed automatically when `NODE_ENV=development`
+  (both the widget and the server-side check in `src/lib/captcha.ts` skip
+  verification), so local development needs no captcha keys at all. In any
+  other environment, a missing `TURNSTILE_SECRET_KEY` fails closed — messages
+  are rejected rather than silently allowed through unverified. Rate
+  limiting and the profanity filter are unaffected by this and stay active
+  in development too.
