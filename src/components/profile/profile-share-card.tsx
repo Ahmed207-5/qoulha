@@ -1,139 +1,166 @@
-'use client';
+import { createClient } from '@/lib/supabase/server';
+import { getDashboardStats, getWeeklyMessageCounts, getMostSuccessfulMessage, getMostActiveDay } from '@/services/dashboard-service';
+import { getFollowStats } from '@/services/follow-service';
+import { getUserLevelInfo } from '@/services/gamification-service';
+import { StatCard } from '@/components/dashboard/stat-card';
+import { WeeklyActivityChart } from '@/components/dashboard/weekly-activity-chart';
+import { LevelProgress } from '@/components/profile/level-progress';
+import { ProfileShareCard } from '@/components/profile/profile-share-card';
+import { MessageCard } from '@/components/message/message-card';
+import { Inbox, MailOpen, CalendarDays, TrendingUp, Eye, Share2, Users, Trophy } from 'lucide-react';
+import Link from 'next/link';
+import { CATEGORY_META, MOOD_META } from '@/constants/message';
+import type { InboxMessage, Profile, Reply } from '@/types/domain';
+import type { Metadata } from 'next';
 
-import * as React from 'react';
-import Image from 'next/image';
-import { QRCodeSVG } from 'qrcode.react';
-import { Button } from '@/components/ui/button';
-import { Download, MessageCircleHeart } from 'lucide-react';
-import { toast } from 'sonner';
-import type { Profile } from '@/types/domain';
+export const metadata: Metadata = { title: 'لوحة التحكم' };
 
-// Same simplified WhatsApp glyph used in share-button.tsx.
-function WhatsAppIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.46 0 9.9-4.44 9.9-9.9S17.5 2 12.04 2zm5.3 14.1c-.22.63-1.28 1.2-1.77 1.24-.45.04-.9.2-3.06-.64-2.59-1.02-4.26-3.68-4.39-3.86-.13-.18-1.05-1.4-1.05-2.67 0-1.27.67-1.89.9-2.15.22-.26.5-.32.66-.32.17 0 .33 0 .48.01.15.01.36-.06.56.43.22.53.73 1.83.8 1.96.06.13.1.28.02.46-.09.18-.13.29-.26.44-.13.15-.27.34-.39.46-.13.13-.26.27-.11.53.15.26.68 1.12 1.46 1.82 1 .9 1.85 1.18 2.11 1.31.26.13.41.11.56-.07.15-.17.63-.73.8-.98.17-.26.34-.21.56-.13.22.09 1.42.67 1.67.79.24.13.4.19.46.29.06.11.06.61-.16 1.2z" />
-    </svg>
-  );
+interface RecentMessageRow {
+  id: string;
+  recipient_id: string;
+  content: string;
+  category: InboxMessage['category'];
+  mood: InboxMessage['mood'];
+  is_read: boolean;
+  is_favorited: boolean;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+  replies: Reply | Reply[] | null;
 }
 
-function TelegramIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M21.9 4.3 2.9 11.6c-1.2.5-1.2 1.2-.2 1.5l4.9 1.5 1.9 5.8c.2.6.4.9.9.9.4 0 .6-.2.9-.5l2.1-2 4.3 3.2c.8.4 1.3.2 1.5-.7l2.8-13.2c.3-1.1-.4-1.6-1.1-1.3zM8.9 13.9l9.3-5.9c.4-.3.8-.1.5.2l-7.6 6.9-.3 3.3z" />
-    </svg>
-  );
-}
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
 
-function FacebookIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.16 8.44 9.94v-7.03H7.9v-2.9h2.54V9.86c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.78 8.44-4.94 8.44-9.94z" />
-    </svg>
-  );
-}
+  const [stats, weekly, { data: recent }, followStats, levelInfo, mostSuccessful, mostActiveDay, { data: profile }] =
+    await Promise.all([
+      getDashboardStats(user.id),
+      getWeeklyMessageCounts(user.id),
+      supabase
+        .from('messages')
+        .select(
+          'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at, replies(id, message_id, author_id, content, created_at, updated_at)'
+        )
+        .eq('recipient_id', user.id)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      getFollowStats(user.id),
+      getUserLevelInfo(user.id),
+      getMostSuccessfulMessage(user.id),
+      getMostActiveDay(user.id),
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+    ]);
 
-function XIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M18.9 2h3.3l-7.2 8.2L23.5 22h-6.6l-5.2-6.8L5.7 22H2.4l7.7-8.8L1.5 2h6.8l4.7 6.2zm-1.2 18h1.8L7.4 3.9H5.5z" />
-    </svg>
-  );
-}
+  const profileUrl = profile ? `${process.env.NEXT_PUBLIC_SITE_URL}/u/${(profile as Profile).username}` : null;
 
-export function ProfileShareCard({ profile, profileUrl }: { profile: Profile; profileUrl: string }) {
-  const cardRef = React.useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = React.useState(false);
-
-  const inviteText = `💜 ابعتلي رسالة مجهولة على قولها!\n${profileUrl}?src=whatsapp`;
-
-  async function handleDownload() {
-    if (!cardRef.current) return;
-    setDownloading(true);
-    try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(cardRef.current, { pixelRatio: 2 });
-      const link = document.createElement('a');
-      link.download = `qoulha-${profile.username}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch {
-      toast.error('حدث خطأ أثناء إنشاء الصورة');
-    }
-    setDownloading(false);
-  }
-
-  function handleWhatsAppInvite() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, '_blank', 'noopener,noreferrer');
-  }
-
-  function handleTelegramInvite() {
-    const url = `${profileUrl}?src=telegram`;
-    window.open(
-      `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('💜 ابعتلي رسالة مجهولة على قولها!')}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
-  }
-
-  function handleFacebookInvite() {
-    const url = `${profileUrl}?src=facebook`;
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
-  }
-
-  function handleXInvite() {
-    const url = `${profileUrl}?src=x`;
-    window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent('💜 ابعتلي رسالة مجهولة على قولها!')}&url=${encodeURIComponent(url)}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
-  }
+  const recentMessages: InboxMessage[] = (recent as unknown as RecentMessageRow[] | null ?? []).map((row) => ({
+    id: row.id,
+    recipient_id: row.recipient_id,
+    content: row.content,
+    category: row.category,
+    mood: row.mood,
+    is_read: row.is_read,
+    is_favorited: row.is_favorited,
+    is_published: row.is_published,
+    published_at: row.published_at,
+    created_at: row.created_at,
+    reply: Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies,
+  }));
 
   return (
-    <div>
-      <div
-        ref={cardRef}
-        className="mx-auto flex w-full max-w-xs flex-col items-center gap-4 rounded-[2rem] bg-gradient-to-br from-brand-500 to-brand-700 p-8 text-center text-white"
-      >
-        <MessageCircleHeart className="h-8 w-8" />
-        <div className="h-20 w-20 overflow-hidden rounded-full ring-4 ring-white/30">
-          {profile.avatar_url ? (
-            <Image src={profile.avatar_url} alt="" width={80} height={80} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-white/20 text-2xl font-bold">
-              {profile.full_name.charAt(0)}
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-extrabold text-brand-950 dark:text-white">أهلاً بيك 👋</h1>
+        <p className="text-sm text-brand-700/70 dark:text-brand-200/70">نظرة سريعة على صفحتك</p>
+      </div>
+
+      <div className="glass rounded-3xl p-5">
+        <LevelProgress levelInfo={levelInfo} />
+      </div>
+
+      {profile && profileUrl && (
+        <div className="glass rounded-3xl p-5">
+          <h2 className="mb-3 font-display text-lg font-bold text-brand-950 dark:text-white">شارك صفحتك</h2>
+          <ProfileShareCard profile={profile as Profile} profileUrl={profileUrl} />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <StatCard label="رسائل غير مقروءة" value={stats.unread} icon={Inbox} />
+        <StatCard label="رسائل مقروءة" value={stats.totalRead} icon={MailOpen} />
+        <StatCard label="النهاردة" value={stats.today} icon={CalendarDays} />
+        <StatCard label="الأسبوع ده" value={stats.thisWeek} icon={TrendingUp} />
+        <StatCard label="زوار الصفحة" value={stats.visitors} icon={Eye} />
+        <StatCard label="منشور على الحائط" value={stats.published} icon={Share2} />
+        <StatCard label="متابعين" value={followStats.followerCount} icon={Users} />
+        <StatCard label="بتتابع" value={followStats.followingCount} icon={Users} />
+      </div>
+
+      {(mostSuccessful || mostActiveDay) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {mostSuccessful && (
+            <Link href={`/m/${mostSuccessful.id}`} className="glass block rounded-3xl p-5 transition-transform hover:-translate-y-0.5">
+              <div className="mb-1.5 flex items-center gap-1.5 text-xs text-brand-500">
+                <Trophy className="h-3.5 w-3.5" />
+                أنجح رسالة ليك
+              </div>
+              <p className="line-clamp-2 text-sm text-brand-900 dark:text-brand-50">{mostSuccessful.content}</p>
+              <p className="mt-1.5 text-[11px] text-brand-500/60">
+                {CATEGORY_META[mostSuccessful.category].label} · نقاط تفاعل: {mostSuccessful.engagementScore}
+              </p>
+            </Link>
+          )}
+          {mostActiveDay && (
+            <div className="glass rounded-3xl p-5">
+              <p className="text-xs text-brand-700/70 dark:text-brand-200/70">أكتر يوم بتوصلك رسايل فيه</p>
+              <p className="mt-1 font-display text-lg font-bold text-brand-950 dark:text-white">{mostActiveDay}</p>
             </div>
           )}
         </div>
-        <div>
-          <p className="font-display text-lg font-bold">{profile.full_name}</p>
-          <p className="text-sm text-white/80" dir="ltr">@{profile.username}</p>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <WeeklyActivityChart data={weekly} />
         </div>
-        <div className="rounded-2xl bg-white p-3">
-          <QRCodeSVG value={`${profileUrl}?src=qr`} size={140} />
+        <div className="space-y-4">
+          {stats.topCategory && (
+            <div className="glass rounded-3xl p-5">
+              <p className="text-xs text-brand-700/70 dark:text-brand-200/70">أكتر تصنيف بيوصلك</p>
+              <p className="mt-1 font-display text-lg font-bold text-brand-950 dark:text-white">
+                {CATEGORY_META[stats.topCategory].label}
+              </p>
+            </div>
+          )}
+          {stats.topMood && (
+            <div className="glass rounded-3xl p-5">
+              <p className="text-xs text-brand-700/70 dark:text-brand-200/70">أكتر شعور بيوصلك</p>
+              <p className="mt-1 font-display text-lg font-bold text-brand-950 dark:text-white">
+                {MOOD_META[stats.topMood].emoji} {MOOD_META[stats.topMood].label}
+              </p>
+            </div>
+          )}
         </div>
-        <p className="text-sm font-semibold">ابعتلي رسالة مجهولة 💜</p>
-        <p className="text-xs text-white/70" dir="ltr">{profileUrl}</p>
       </div>
 
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        <Button variant="secondary" size="sm" onClick={handleDownload} isLoading={downloading}>
-          <Download className="h-4 w-4" />
-          تحميل PNG
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleWhatsAppInvite}>
-          <WhatsAppIcon />
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleTelegramInvite}>
-          <TelegramIcon />
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleFacebookInvite}>
-          <FacebookIcon />
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleXInvite}>
-          <XIcon />
-        </Button>
+      <div>
+        <h2 className="mb-3 font-display text-lg font-bold text-brand-950 dark:text-white">آخر الرسائل</h2>
+        {recentMessages.length > 0 ? (
+          <div className="space-y-3">
+            {recentMessages.map((msg) => (
+              <MessageCard key={msg.id} message={msg} />
+            ))}
+          </div>
+        ) : (
+          <div className="glass rounded-3xl p-10 text-center text-sm text-brand-700/70 dark:text-brand-200/70">
+            لسه ملوصلكش رسائل — شارك رابط صفحتك عشان تبدأ تستقبل!
+          </div>
+        )}
       </div>
     </div>
   );
