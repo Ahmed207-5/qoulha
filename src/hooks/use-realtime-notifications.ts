@@ -22,22 +22,39 @@ export function useRealtimeNotifications(userId: string, initialUnreadCount: num
   useEffect(() => {
     const supabase = createClient();
 
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const type = payload.new.type as NotificationType;
-          setUnreadCount((count) => count + 1);
-          toast.message(getNotificationText(type));
-        }
-      )
-      .subscribe();
+    const topic = `notifications:${userId}`;
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+// If another component already created this realtime channel,
+// don't subscribe again.
+const existing = supabase
+  .getChannels()
+  .find((c) => c.topic === `realtime:${topic}`);
+
+if (existing) {
+  return;
+}
+
+const channel = supabase
+  .channel(topic)
+  .on(
+    'postgres_changes',
+    {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    },
+    (payload) => {
+      const type = payload.new.type as NotificationType;
+      setUnreadCount((count) => count + 1);
+      toast.message(getNotificationText(type));
+    }
+  )
+  .subscribe();
+
+return () => {
+  supabase.removeChannel(channel);
+};
   }, [userId]);
 
   const decrementBy = useCallback((amount: number) => {
