@@ -9,6 +9,7 @@ import { Textarea, FieldError } from '@/components/ui/form-elements';
 import { Button } from '@/components/ui/button';
 import { CategorySelect } from './category-select';
 import { MoodSelect } from './mood-select';
+import { TagPicker } from './tag-picker';
 import { TurnstileWidget } from './turnstile-widget';
 import { SendSuccessAnimation } from './send-success-animation';
 import { ShieldCheck } from 'lucide-react';
@@ -28,7 +29,7 @@ export function SendMessageForm({ recipientId }: { recipientId: string }) {
     formState: { errors, isSubmitting },
   } = useForm<SendMessageInput>({
     resolver: zodResolver(sendMessageSchema),
-    defaultValues: { recipientId, category: 'general', mood: 'calm', content: '', captchaToken: '' },
+    defaultValues: { recipientId, category: 'general', mood: 'calm', content: '', captchaToken: '', tags: [] },
   });
 
   const content = watch('content');
@@ -47,7 +48,7 @@ export function SendMessageForm({ recipientId }: { recipientId: string }) {
     return (
       <SendSuccessAnimation
         onSendAnother={() => {
-          reset({ recipientId, category: 'general', mood: 'calm', content: '', captchaToken: '' });
+          reset({ recipientId, category: 'general', mood: 'calm', content: '', captchaToken: '', tags: [] });
           setSent(false);
         }}
       />
@@ -71,6 +72,17 @@ export function SendMessageForm({ recipientId }: { recipientId: string }) {
           control={control}
           name="mood"
           render={({ field }) => <MoodSelect value={field.value} onChange={field.onChange} />}
+        />
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-semibold text-brand-700/80 dark:text-brand-200/80">
+          تاجات (اختياري، لحد 3)
+        </p>
+        <Controller
+          control={control}
+          name="tags"
+          render={({ field }) => <TagPicker value={field.value ?? []} onChange={field.onChange} />}
         />
       </div>
 

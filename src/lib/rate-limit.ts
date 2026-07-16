@@ -89,3 +89,22 @@ export async function checkRepostRateLimit(identifier: string): Promise<{ allowe
   if (!success) return { allowed: false, retryAfterSeconds: Math.ceil((reset - Date.now()) / 1000) };
   return { allowed: true };
 }
+
+const followRatelimit = hasUpstash
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(20, '1 m'), // 20 follow/unfollow actions per minute
+      analytics: true,
+      prefix: 'qoulha:follow',
+    })
+  : null;
+
+export async function checkFollowRateLimit(identifier: string): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
+  if (!followRatelimit) {
+    console.warn('[rate-limit] Upstash not configured; skipping follow rate limit check.');
+    return { allowed: true };
+  }
+  const { success, reset } = await followRatelimit.limit(identifier);
+  if (!success) return { allowed: false, retryAfterSeconds: Math.ceil((reset - Date.now()) / 1000) };
+  return { allowed: true };
+}

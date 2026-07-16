@@ -44,13 +44,19 @@ export async function getUsersList(page: number, pageSize: number, search?: stri
   return { users: data ?? [], totalCount: count ?? 0 };
 }
 
-export async function getReportsList(status: 'pending' | 'reviewed' | 'actioned' | 'dismissed' | 'all') {
+export async function getReportsList(
+  status: 'pending' | 'reviewed' | 'actioned' | 'dismissed' | 'all',
+  filters?: { reason?: string }
+) {
   const supabase = await createClient();
   let q = supabase
     .from('reports')
-    .select('id, reason, details, status, created_at, message:messages(id, content, category), reporter:profiles!reports_reporter_id_fkey(username)');
+    .select(
+      'id, reason, details, status, created_at, message:messages(id, content, category, recipient_id, recipient:profiles!messages_recipient_id_fkey(username, is_suspended)), reporter:profiles!reports_reporter_id_fkey(username)'
+    );
 
   if (status !== 'all') q = q.eq('status', status);
+  if (filters?.reason) q = q.eq('reason', filters.reason);
 
   const { data } = await q.order('created_at', { ascending: false }).limit(50);
   return data ?? [];

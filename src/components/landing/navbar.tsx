@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircleHeart } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { MessageCircleHeart, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function Navbar() {
+export function Navbar({ userId, initialUnreadCount = 0 }: { userId?: string; initialUnreadCount?: number }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -42,15 +43,35 @@ export function Navbar() {
           <Link href="/wall" className="text-sm font-medium text-brand-700 hover:text-brand-500 dark:text-brand-200">
             الحائط العام
           </Link>
+          <Link href="/search" className="text-sm font-medium text-brand-700 hover:text-brand-500 dark:text-brand-200">
+            البحث
+          </Link>
+          <Link href="/leaderboard" className="text-sm font-medium text-brand-700 hover:text-brand-500 dark:text-brand-200">
+            المتصدرين
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" size="sm">تسجيل الدخول</Button>
-          </Link>
-          <Link href="/register">
-            <Button size="sm">اعمل حسابك</Button>
-          </Link>
+          {userId ? (
+            <>
+              <NotificationBell userId={userId} initialUnreadCount={initialUnreadCount} />
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <LayoutDashboard className="h-4 w-4" />
+                  لوحتي
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">تسجيل الدخول</Button>
+              </Link>
+              <Link href="/register">
+                <Button size="sm">اعمل حسابك</Button>
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </header>

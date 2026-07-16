@@ -9,13 +9,24 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { Input } from '@/components/ui/form-elements';
 import { Search, Loader2 } from 'lucide-react';
 
-export function WallGrid({ viewerId }: { viewerId?: string }) {
+export function WallGrid({
+  viewerId,
+  tagSlug,
+  recipientId,
+  hideSearch,
+}: {
+  viewerId?: string;
+  tagSlug?: string;
+  recipientId?: string;
+  hideSearch?: boolean;
+}) {
   const [search, setSearch] = React.useState('');
   const debouncedSearch = useDebouncedValue(search, 350);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ['wall', debouncedSearch],
-    queryFn: ({ pageParam }) => getWallMessagesAction({ cursor: pageParam, search: debouncedSearch, viewerId }),
+    queryKey: ['wall', debouncedSearch, tagSlug, recipientId],
+    queryFn: ({ pageParam }) =>
+      getWallMessagesAction({ cursor: pageParam, search: debouncedSearch, viewerId, tagSlug, recipientId }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
@@ -25,15 +36,17 @@ export function WallGrid({ viewerId }: { viewerId?: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="relative mx-auto max-w-md">
-        <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-400" />
-        <Input
-          placeholder="دور في الحائط العام..."
-          className="pr-11"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      {!hideSearch && (
+        <div className="relative mx-auto max-w-md">
+          <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-400" />
+          <Input
+            placeholder="دور في الحائط العام..."
+            className="pr-11"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { getCategoryDistribution, getMoodDistribution, getGrowthTrend } from '@/services/analytics-service';
+import { getProfileLinkAnalytics } from '@/services/profile-link-analytics-service';
 import { DistributionPieChart } from '@/components/dashboard/distribution-pie-chart';
 import { GrowthLineChart } from '@/components/dashboard/growth-line-chart';
+import { ProfileLinkAnalyticsCard } from '@/components/dashboard/profile-link-analytics-card';
 import { CATEGORY_META, MOOD_META } from '@/constants/message';
 import type { Metadata } from 'next';
 
@@ -14,10 +16,11 @@ export default async function AnalyticsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [categories, moods, growth] = await Promise.all([
+  const [categories, moods, growth, linkAnalytics] = await Promise.all([
     getCategoryDistribution(user.id),
     getMoodDistribution(user.id),
     getGrowthTrend(user.id),
+    getProfileLinkAnalytics(user.id),
   ]);
 
   const categoryData = categories.map((c) => ({
@@ -36,6 +39,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-2xl font-extrabold text-brand-950 dark:text-white">الإحصائيات</h1>
+      <ProfileLinkAnalyticsCard analytics={linkAnalytics} />
       <GrowthLineChart data={growth} />
       <div className="grid gap-6 sm:grid-cols-2">
         <DistributionPieChart title="التصنيفات" data={categoryData} />

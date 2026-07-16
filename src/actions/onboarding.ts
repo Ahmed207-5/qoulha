@@ -14,6 +14,31 @@ export async function checkUsernameAvailable(username: string): Promise<boolean>
   return !data;
 }
 
+/**
+ * When a username is taken, suggests up to 3 available alternatives
+ * (numeric suffixes + underscore variant) rather than leaving the user to
+ * guess. Checks candidates in a single batched query instead of one
+ * round-trip per guess.
+ */
+export async function suggestUsernameAlternatives(username: string): Promise<string[]> {
+  const base = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (!base) return [];
+
+  const candidates = [
+    `${base}_`,
+    `${base}${Math.floor(Math.random() * 90 + 10)}`,
+    `${base}${Math.floor(Math.random() * 900 + 100)}`,
+    `${base}_${Math.floor(Math.random() * 90 + 10)}`,
+    `the_${base}`,
+  ].filter((c) => c.length >= 3 && c.length <= 20);
+
+  const supabase = await createClient();
+  const { data: taken } = await supabase.from('profiles').select('username').in('username', candidates);
+  const takenSet = new Set((taken ?? []).map((r) => r.username));
+
+  return candidates.filter((c) => !takenSet.has(c)).slice(0, 3);
+}
+
 export async function completeOnboardingAction(formData: unknown): Promise<ActionResult> {
   const parsed = onboardingSchema.safeParse(formData);
   if (!parsed.success) {

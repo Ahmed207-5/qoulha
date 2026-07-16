@@ -23,6 +23,7 @@ export const sendMessageSchema = z.object({
   captchaToken: isDevelopment
     ? z.string().default('dev-bypass')
     : z.string().min(1, 'برجاء تأكيد أنك لست روبوت'),
+  tags: z.array(z.string().trim().min(1).max(30)).max(3, 'أقصى حاجة 3 تاجات').optional(),
 });
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;

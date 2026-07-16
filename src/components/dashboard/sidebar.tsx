@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Inbox, Settings, MessageCircleHeart, LogOut, Shield, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/actions/auth';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
@@ -13,15 +14,26 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 
-export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+export function Sidebar({
+  isAdmin,
+  userId,
+  initialUnreadCount,
+}: {
+  isAdmin: boolean;
+  userId: string;
+  initialUnreadCount: number;
+}) {
   const pathname = usePathname();
 
   return (
     <aside className="fixed inset-y-0 right-0 z-40 hidden w-64 flex-col border-l border-brand-200/30 bg-white/70 backdrop-blur-xl dark:border-white/10 dark:bg-brand-950/50 lg:flex">
-      <Link href="/" className="flex items-center gap-2 px-6 py-6">
-        <MessageCircleHeart className="h-7 w-7 text-brand-500" />
-        <span className="font-display text-lg font-bold gradient-text">قولها</span>
-      </Link>
+      <div className="flex items-center justify-between px-6 py-6">
+        <Link href="/" className="flex items-center gap-2">
+          <MessageCircleHeart className="h-7 w-7 text-brand-500" />
+          <span className="font-display text-lg font-bold gradient-text">قولها</span>
+        </Link>
+        <NotificationBell userId={userId} initialUnreadCount={initialUnreadCount} />
+      </div>
 
       <nav className="flex-1 space-y-1 px-4">
         {NAV_ITEMS.map((item) => {

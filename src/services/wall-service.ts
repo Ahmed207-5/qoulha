@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { PublicWallMessage, ReactionEmoji, Reply } from '@/types/domain';
+import type { PublicWallMessage, ReactionEmoji, Reply, Tag } from '@/types/domain';
 import { REACTION_EMOJIS } from '@/constants/message';
 
 export interface WallQuery {
@@ -10,6 +10,10 @@ export interface WallQuery {
   pageSize?: number;
   /** Milestone 1: current viewer, used to resolve my_reaction / reposted_by_me. */
   viewerId?: string;
+  /** Phase 2: filter to messages carrying this tag slug. */
+  tagSlug?: string;
+  /** Phase 2: filter to messages received by this one profile (profile "Messages" tab). */
+  recipientId?: string;
 }
 
 export interface WallQueryResult {
@@ -36,6 +40,16 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
 
   if (query.cursor) q = q.lt('published_at', query.cursor);
   if (query.search) q = q.ilike('content', `%${query.search}%`);
+  if (query.recipientId) q = q.eq('recipient_id', query.recipientId);
+
+  if (query.tagSlug) {
+    const { data: tag } = await supabase.from('tags').select('id').eq('slug', query.tagSlug).maybeSingle();
+    if (!tag) return { messages: [], nextCursor: null };
+    const { data: taggedRows } = await supabase.from('message_tags').select('message_id').eq('tag_id', tag.id);
+    const taggedIds = (taggedRows ?? []).map((r) => r.message_id);
+    if (taggedIds.length === 0) return { messages: [], nextCursor: null };
+    q = q.in('id', taggedIds);
+  }
 
   const { data, error } = await q;
   if (error || !data) return { messages: [], nextCursor: null };
@@ -62,7 +76,7 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
   // Batched follow-up queries (using .in()) instead of one round trip per
   // card — keeps this at a fixed small number of queries per page load
   // regardless of pageSize.
-  const [{ data: commentRows }, { data: repostRows }, { data: myReactionRows }, { data: myRepostRows }] = await Promise.all([
+  const [{ data: commentRows }, { data: repostRows }, { data: myReactionRows }, { data: myRepostRows }, { data: tagRows }] = await Promise.all([
     ids.length
       ? supabase.from('comments').select('message_id').eq('is_deleted', false).in('message_id', ids)
       : Promise.resolve({ data: [] as { message_id: string }[] }),
@@ -75,6 +89,9 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
     ids.length && query.viewerId
       ? supabase.from('reposts').select('original_message_id').eq('reposted_by', query.viewerId).in('original_message_id', ids)
       : Promise.resolve({ data: [] as { original_message_id: string }[] }),
+    ids.length
+      ? supabase.from('message_tags').select('message_id, tag:tags(id, name, slug, usage_count)').in('message_id', ids)
+      : Promise.resolve({ data: [] as { message_id: string; tag: Tag | Tag[] }[] }),
   ]);
 
   const commentsCountMap = new Map<string, number>();
@@ -91,6 +108,15 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
   for (const row of myReactionRows ?? []) myReactionMap.set(row.message_id, row.emoji as ReactionEmoji);
 
   const myRepostSet = new Set((myRepostRows ?? []).map((r) => r.original_message_id));
+
+  const tagsMap = new Map<string, Tag[]>();
+  for (const row of tagRows ?? []) {
+    const tag = Array.isArray(row.tag) ? row.tag[0] : row.tag;
+    if (!tag) continue;
+    const existing = tagsMap.get(row.message_id) ?? [];
+    existing.push(tag);
+    tagsMap.set(row.message_id, existing);
+  }
 
   const messages: PublicWallMessage[] = rows
     .map((row): PublicWallMessage | null => {
@@ -120,6 +146,7 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
         repost_count: repostCountMap.get(row.id) ?? 0,
         my_reaction: myReactionMap.get(row.id) ?? null,
         reposted_by_me: myRepostSet.has(row.id),
+        tags: tagsMap.get(row.id) ?? [],
       };
     })
     .filter((m): m is PublicWallMessage => m !== null);

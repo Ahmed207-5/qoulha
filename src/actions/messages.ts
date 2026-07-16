@@ -48,7 +48,17 @@ export async function sendMessageAction(formData: unknown): Promise<ActionResult
   const cleaned = cleanForStorage(parsed.data.content);
   const flagged = containsProfanity(cleaned);
 
+  // Generate the id ourselves rather than using .select() to read it back —
+  // requesting RETURNING data on this INSERT breaks anonymous sending
+  // entirely (Postgres requires the new row to satisfy a SELECT policy
+  // when RETURNING is requested; an unpublished message sent by someone
+  // who isn't its recipient satisfies none, verified directly). Since the
+  // messages.id column has no default we depend on, supplying our own
+  // UUID is simplest and sidesteps the issue completely.
+  const messageId = crypto.randomUUID();
+
   const { error } = await supabase.from('messages').insert({
+    id: messageId,
     recipient_id: parsed.data.recipientId,
     content: cleaned,
     category: parsed.data.category,
@@ -60,6 +70,15 @@ export async function sendMessageAction(formData: unknown): Promise<ActionResult
 
   if (error) {
     return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى' };
+  }
+
+  if (parsed.data.tags && parsed.data.tags.length > 0) {
+    // Best-effort — tags are a nice-to-have; a failure here must never
+    // undo or fail the message send itself.
+    await supabase.rpc('attach_tags_to_message', {
+      p_message_id: messageId,
+      p_tag_names: parsed.data.tags,
+    });
   }
 
   return { success: true };

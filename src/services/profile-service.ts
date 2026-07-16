@@ -29,12 +29,18 @@ export const getPublicProfileByUsername = cache(async (username: string): Promis
   return { ...profile, allow_messages: settings?.allow_messages ?? true };
 });
 
-export async function logProfileVisit(profileId: string, fingerprint: string, referrer: string | null) {
+export async function logProfileVisit(
+  profileId: string,
+  fingerprint: string,
+  referrer: string | null,
+  source: 'direct' | 'qr' | 'share' | 'whatsapp' | 'telegram' | 'facebook' | 'x' = 'direct'
+) {
   const supabase = await createClient();
   await supabase.from('visits').insert({
     profile_id: profileId,
     visitor_fingerprint: fingerprint,
     referrer,
+    source,
   });
   // Atomic increment via Postgres function — avoids read-then-write race
   // conditions under concurrent visits (see 0004_functions.sql).

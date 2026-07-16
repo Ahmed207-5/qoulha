@@ -1,6 +1,7 @@
 import { getMessageDetail, getRepostsForMessage } from '@/services/message-detail-service';
 import { getCommentsAction } from '@/actions/comments';
 import { createClient } from '@/lib/supabase/server';
+import { getUnreadNotificationCount } from '@/services/notifications-service';
 import { WallMessageCard } from '@/components/wall/wall-message-card';
 import { RepostedByList } from '@/components/wall/reposted-by-list';
 import { CommentList } from '@/components/message/comment-list';
@@ -52,6 +53,7 @@ export default async function MessageDetailPage({ params }: Props) {
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
     isAdmin = profile?.is_admin ?? false;
   }
+  const unreadCount = user ? await getUnreadNotificationCount(user.id) : 0;
 
   const message = await getMessageDetail(messageId, user?.id);
   if (!message) notFound();
@@ -64,7 +66,7 @@ export default async function MessageDetailPage({ params }: Props) {
   return (
     <>
       <FloatingBackground />
-      <Navbar />
+      <Navbar userId={user?.id} initialUnreadCount={unreadCount} />
       <div className="mx-auto max-w-lg px-6 pb-16 pt-32">
         <WallMessageCard message={message} viewerId={user?.id} />
 

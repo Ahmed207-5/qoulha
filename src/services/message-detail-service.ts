@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { PublicWallMessage, Reply, ReactionEmoji, Profile } from '@/types/domain';
+import type { PublicWallMessage, Reply, ReactionEmoji, Profile, Tag } from '@/types/domain';
 import { REACTION_EMOJIS } from '@/constants/message';
 
 interface MessageDetailRow {
@@ -49,7 +49,7 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
   }
   const reply = Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies;
 
-  const [{ count: commentsCount }, { count: repostCount }, myReactionResult, myRepostResult] = await Promise.all([
+  const [{ count: commentsCount }, { count: repostCount }, myReactionResult, myRepostResult, { data: tagRows }] = await Promise.all([
     supabase.from('comments').select('id', { count: 'exact', head: true }).eq('message_id', messageId).eq('is_deleted', false),
     supabase.from('reposts').select('id', { count: 'exact', head: true }).eq('original_message_id', messageId),
     viewerId
@@ -58,7 +58,12 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
     viewerId
       ? supabase.from('reposts').select('id').eq('original_message_id', messageId).eq('reposted_by', viewerId).maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null }),
+    supabase.from('message_tags').select('tag:tags(id, name, slug, usage_count)').eq('message_id', messageId),
   ]);
+
+  const tags: Tag[] = (tagRows ?? [])
+    .map((row) => (Array.isArray(row.tag) ? row.tag[0] : row.tag))
+    .filter((t): t is Tag => !!t);
 
   return {
     id: row.id,
@@ -78,6 +83,7 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
     repost_count: repostCount ?? 0,
     my_reaction: (myReactionResult.data?.emoji as ReactionEmoji) ?? null,
     reposted_by_me: !!myRepostResult.data,
+    tags,
   };
 }
 

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { onboardingSchema, type OnboardingInput } from '@/lib/validations/auth';
-import { completeOnboardingAction, checkUsernameAvailable, uploadAvatarAction } from '@/actions/onboarding';
+import { completeOnboardingAction, checkUsernameAvailable, suggestUsernameAlternatives, uploadAvatarAction } from '@/actions/onboarding';
 import { Input, Textarea, FieldError } from '@/components/ui/form-elements';
 import { Button } from '@/components/ui/button';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -21,6 +21,7 @@ export function OnboardingForm() {
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [usernameStatus, setUsernameStatus] = React.useState<UsernameStatus>('idle');
+  const [usernameSuggestions, setUsernameSuggestions] = React.useState<string[]>([]);
 
   const {
     register,
@@ -36,12 +37,20 @@ export function OnboardingForm() {
   React.useEffect(() => {
     if (!debouncedUsername || debouncedUsername.length < 3) {
       setUsernameStatus('idle');
+      setUsernameSuggestions([]);
       return;
     }
     let cancelled = false;
     setUsernameStatus('checking');
-    checkUsernameAvailable(debouncedUsername).then((available) => {
-      if (!cancelled) setUsernameStatus(available ? 'available' : 'taken');
+    checkUsernameAvailable(debouncedUsername).then(async (available) => {
+      if (cancelled) return;
+      setUsernameStatus(available ? 'available' : 'taken');
+      if (!available) {
+        const suggestions = await suggestUsernameAlternatives(debouncedUsername);
+        if (!cancelled) setUsernameSuggestions(suggestions);
+      } else {
+        setUsernameSuggestions([]);
+      }
     });
     return () => {
       cancelled = true;
@@ -117,6 +126,22 @@ export function OnboardingForm() {
           <p className="mt-1 text-xs text-brand-500/70" dir="ltr">
             qoulha.app/u/{username}
           </p>
+        )}
+        {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-brand-500/70">جرّب:</span>
+            {usernameSuggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setValue('username', s, { shouldValidate: true, shouldDirty: true })}
+                className="rounded-full bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-500/20 dark:text-brand-300"
+                dir="ltr"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         )}
         <FieldError message={errors.username?.message} />
       </div>

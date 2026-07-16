@@ -40,7 +40,7 @@ export function ProfileQrCode({ url }: { url: string }) {
                 <X className="h-5 w-5" />
               </button>
               <div className="rounded-3xl bg-white p-4">
-                <QRCodeSVG value={url} size={220} />
+                <QRCodeSVG value={`${url}${url.includes('?') ? '&' : '?'}src=qr`} size={220} />
               </div>
             </motion.div>
           </motion.div>
