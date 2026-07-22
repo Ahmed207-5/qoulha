@@ -120,8 +120,8 @@ export function MessageCard({ message, onDeleted }: { message: InboxMessage; onD
 
       <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">{msg.content}</p>
 
-      {/* Milestone 1: only makes sense once published — RLS requires it too */}
-      {msg.is_published && <ReplyManager messageId={msg.id} initialReply={msg.reply} />}
+      {/* Reply is fully independent of publishing to the wall — never gated on is_published */}
+      <ReplyManager messageId={msg.id} initialReply={msg.reply} />
 
       <div className="mt-4 flex items-center justify-between">
         <span className="text-[11px] text-brand-500/60">

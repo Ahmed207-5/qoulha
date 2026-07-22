@@ -20,7 +20,17 @@ interface MessageDetailRow {
   replies: Reply | Reply[] | null;
 }
 
-/** Fetches one published message with its full social payload for the detail page. */
+/**
+ * Fetches one message with its full social payload for the detail page.
+ * Deliberately does NOT filter on is_published here — that's enforced by
+ * RLS instead: public/logged-out visitors can only ever see a row via the
+ * "published" policy, while the recipient and (if they were logged in when
+ * sending) the original sender can also see their own unpublished message
+ * via the recipient/is_message_sender policies in
+ * 0002_rls_policies.sql / 0020_private_replies.sql. This lets a sender
+ * follow a "new_reply" notification to a private reply without requiring
+ * the recipient to publish first.
+ */
 export async function getMessageDetail(messageId: string, viewerId?: string): Promise<PublicWallMessage | null> {
   const supabase = await createClient();
 
@@ -33,7 +43,6 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
        replies(id, message_id, author_id, content, created_at, updated_at)`
     )
     .eq('id', messageId)
-    .eq('is_published', true)
     .eq('is_deleted', false)
     .maybeSingle();
 

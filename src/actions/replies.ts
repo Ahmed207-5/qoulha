@@ -10,9 +10,12 @@ import type { ActionResult } from './auth';
  * Creates or edits the caller's official reply to a message they received.
  * "Reply can be edited" is implemented as an upsert on the unique
  * `message_id` column — resubmitting simply overwrites the existing reply.
- * Permissions (recipient-only, message must be published) are enforced by
- * RLS in 0005_replies.sql; this action re-checks ownership up front purely
- * to return a friendly error instead of a generic database failure.
+ * Replying is fully independent of publishing to the wall — it's never
+ * required, and never toggles is_published (see message-mutations.ts,
+ * which is the only place that changes that field). Permissions
+ * (recipient-only) are enforced by RLS in 0005_replies.sql /
+ * 0020_private_replies.sql; this action re-checks ownership up front
+ * purely to return a friendly error instead of a generic database failure.
  */
 export async function upsertReplyAction(formData: unknown): Promise<ActionResult> {
   const parsed = replySchema.safeParse(formData);
@@ -30,15 +33,12 @@ export async function upsertReplyAction(formData: unknown): Promise<ActionResult
 
   const { data: message } = await supabase
     .from('messages')
-    .select('recipient_id, is_published')
+    .select('recipient_id')
     .eq('id', parsed.data.messageId)
     .single();
 
   if (!message || message.recipient_id !== user.id) {
     return { success: false, error: 'مش مسموحلك بالرد على الرسالة دي' };
-  }
-  if (!message.is_published) {
-    return { success: false, error: 'لازم تنشر الرسالة الأول عشان تقدر ترد عليها' };
   }
 
   const cleaned = cleanForStorage(parsed.data.content);

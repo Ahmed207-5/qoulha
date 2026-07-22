@@ -53,30 +53,36 @@ export function WallMessageCard({
         <span className="text-xs text-brand-500">إلى @{message.recipient.username}</span>
       </Link>
 
-      <div className="mt-4 flex items-center justify-between">
-        <ReactionPicker
-          messageId={message.id}
-          initialCounts={message.reaction_counts}
-          initialMyReaction={message.my_reaction}
-          isAuthenticated={!!viewerId}
-        />
-        <div className="flex items-center gap-2">
-          <Link href={`/m/${message.id}`} className="flex items-center gap-1 text-brand-500 hover:opacity-80">
-            <MessageCircle className="h-4 w-4" />
-            {message.comments_count > 0 && <span className="text-[11px]">{message.comments_count}</span>}
-          </Link>
-          <RepostButton
+      {message.is_published ? (
+        <div className="mt-4 flex items-center justify-between">
+          <ReactionPicker
             messageId={message.id}
-            initialCount={message.repost_count}
-            initialReposted={message.reposted_by_me}
+            initialCounts={message.reaction_counts}
+            initialMyReaction={message.my_reaction}
             isAuthenticated={!!viewerId}
           />
-          <span className="text-[11px] text-brand-500/60">
-            {message.published_at && formatDistanceToNow(new Date(message.published_at), { addSuffix: true, locale: ar })}
-          </span>
-          <ShareButton url={messageUrl} text={message.content} />
+          <div className="flex items-center gap-2">
+            <Link href={`/m/${message.id}`} className="flex items-center gap-1 text-brand-500 hover:opacity-80">
+              <MessageCircle className="h-4 w-4" />
+              {message.comments_count > 0 && <span className="text-[11px]">{message.comments_count}</span>}
+            </Link>
+            <RepostButton
+              messageId={message.id}
+              initialCount={message.repost_count}
+              initialReposted={message.reposted_by_me}
+              isAuthenticated={!!viewerId}
+            />
+            <span className="text-[11px] text-brand-500/60">
+              {message.published_at && formatDistanceToNow(new Date(message.published_at), { addSuffix: true, locale: ar })}
+            </span>
+            <ShareButton url={messageUrl} text={message.content} />
+          </div>
         </div>
-      </div>
+      ) : (
+        // Not on the wall — reactions/comments/repost/share only apply to public wall
+        // messages, and sharing a private link wouldn't resolve for anyone else anyway.
+        <p className="mt-4 text-[11px] text-brand-500/60">رسالة خاصة — لسه متنشرتش على الحائط</p>
+      )}
     </div>
   );
 }

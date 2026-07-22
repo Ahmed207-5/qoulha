@@ -58,10 +58,9 @@ export default async function MessageDetailPage({ params }: Props) {
   const message = await getMessageDetail(messageId, user?.id);
   if (!message) notFound();
 
-  const [initialComments, reposts] = await Promise.all([
-    getCommentsAction(messageId),
-    getRepostsForMessage(messageId),
-  ]);
+  const [initialComments, reposts] = message.is_published
+    ? await Promise.all([getCommentsAction(messageId), getRepostsForMessage(messageId)])
+    : [{ comments: [], nextCursor: null }, []];
 
   return (
     <>
@@ -70,18 +69,22 @@ export default async function MessageDetailPage({ params }: Props) {
       <div className="mx-auto max-w-lg px-6 pb-16 pt-32">
         <WallMessageCard message={message} viewerId={user?.id} />
 
-        <RepostedByList messageId={messageId} initialReposts={reposts} isAdmin={isAdmin} />
+        {message.is_published && (
+          <>
+            <RepostedByList messageId={messageId} initialReposts={reposts} isAdmin={isAdmin} />
 
-        <div className="mt-8">
-          <h2 className="mb-4 font-display text-lg font-bold text-brand-950 dark:text-white">التعليقات</h2>
-          <CommentList
-            messageId={messageId}
-            initialComments={initialComments.comments}
-            initialNextCursor={initialComments.nextCursor}
-            currentUserId={user?.id}
-            isAdmin={isAdmin}
-          />
-        </div>
+            <div className="mt-8">
+              <h2 className="mb-4 font-display text-lg font-bold text-brand-950 dark:text-white">التعليقات</h2>
+              <CommentList
+                messageId={messageId}
+                initialComments={initialComments.comments}
+                initialNextCursor={initialComments.nextCursor}
+                currentUserId={user?.id}
+                isAdmin={isAdmin}
+              />
+            </div>
+          </>
+        )}
       </div>
     </>
   );
