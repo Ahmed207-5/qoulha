@@ -158,7 +158,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="glass rounded-3xl p-10 text-center text-sm text-brand-700/70 dark:text-brand-200/70">
-            لسه ملوصلكش رسائل — شارك رابط صفحتك عشان تبدأ تستقبل!
+            لسه موصلكش رسائل — شارك رابط صفحتك عشان تبدأ تستقبل!
           </div>
         )}
       </div>
