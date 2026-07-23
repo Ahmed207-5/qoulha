@@ -43,3 +43,20 @@ export const metadata: Metadata = {
 
   manifest: '/manifest.json',
 };
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <body className={`${cairo.variable} ${plexArabic.variable} font-body`}>
+        <Providers>
+          {children}
+          <Toaster position="top-center" richColors dir="rtl" />
+        </Providers>
+      </body>
+    </html>
+  );
+}
