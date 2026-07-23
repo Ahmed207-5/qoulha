@@ -12,6 +12,7 @@ function getNotificationHref(notification: Notification): string {
       return '/inbox';
     case 'new_reply':
     case 'new_comment':
+    case 'mention':
     case 'reaction':
     case 'new_repost':
       return notification.payload.message_id ? `/m/${notification.payload.message_id}` : '/wall';

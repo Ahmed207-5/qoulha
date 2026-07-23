@@ -10,9 +10,10 @@ export type ReportStatus = 'pending' | 'reviewed' | 'actioned' | 'dismissed';
 // Phase 1 (Notifications): 'new_reply' | 'new_comment' | 'new_repost' | 'new_follower'
 // added to the existing set. 'reaction' and 'moderation' were already
 // present and are reused as-is for those two event types.
+// 'mention': @mentions in Public Wall comments (0021_comment_mentions.sql).
 export type NotificationType =
   | 'new_message' | 'reaction' | 'system' | 'moderation'
-  | 'new_reply' | 'new_comment' | 'new_repost' | 'new_follower';
+  | 'new_reply' | 'new_comment' | 'new_repost' | 'new_follower' | 'mention';
 // Milestone 1: reaction set changed to the ASK.fm-style five below.
 // Backed by the new message_reactions table (see 0007_message_reactions.sql),
 // not the original anonymous `reactions` table.

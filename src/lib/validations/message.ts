@@ -44,7 +44,8 @@ export const commentSchema = z.object({
     .string()
     .trim()
     .min(1, 'اكتب تعليق الأول')
-    .max(300, 'التعليق أطول من 300 حرف'),
+    .max(300, 'التعليق أطول من 300 حرف')
+    .refine((val) => (val.match(/@[A-Za-z0-9_]{2,30}/g) ?? []).length <= 5, 'أقصى حاجة 5 إشارات (@) في التعليق'),
 });
 
 export type CommentInput = z.infer<typeof commentSchema>;

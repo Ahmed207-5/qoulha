@@ -7,6 +7,7 @@ import { ar } from 'date-fns/locale';
 import { Trash2 } from 'lucide-react';
 import { getCommentsAction, deleteCommentAction } from '@/actions/comments';
 import { CommentForm } from './comment-form';
+import { MentionText } from './mention-text';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { Comment } from '@/types/domain';
@@ -89,7 +90,9 @@ export function CommentList({
                   </button>
                 )}
               </div>
-              <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">{comment.content}</p>
+              <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">
+                <MentionText content={comment.content} />
+              </p>
             </div>
           ))}
         </div>

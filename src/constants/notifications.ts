@@ -1,10 +1,11 @@
 import type { NotificationType } from '@/types/domain';
-import { MessageCircleHeart, MessageCircle, Heart, Repeat2, UserPlus, ShieldAlert, CornerUpLeft, Bell } from 'lucide-react';
+import { MessageCircleHeart, MessageCircle, Heart, Repeat2, UserPlus, ShieldAlert, CornerUpLeft, AtSign, Bell } from 'lucide-react';
 
 export const NOTIFICATION_META: Record<NotificationType, { icon: typeof Bell; color: string }> = {
   new_message:  { icon: MessageCircleHeart, color: '#6b4bab' },
   new_reply:    { icon: CornerUpLeft,       color: '#7FB3B0' },
   new_comment:  { icon: MessageCircle,      color: '#8567c4' },
+  mention:      { icon: AtSign,             color: '#5A9BD8' },
   reaction:     { icon: Heart,              color: '#C77B6F' },
   new_repost:   { icon: Repeat2,            color: '#6B9B8F' },
   new_follower: { icon: UserPlus,           color: '#E8A87C' },
@@ -21,6 +22,8 @@ export function getNotificationText(type: NotificationType, actorName?: string):
       return 'حد رد على الرسالة اللي بعتها';
     case 'new_comment':
       return actorName ? `${actorName} علّق على رسالتك` : 'حد علّق على رسالتك';
+    case 'mention':
+      return actorName ? `${actorName} عملك إشارة في تعليق 👀` : 'حد عملك إشارة في تعليق 👀';
     case 'reaction':
       return actorName ? `${actorName} تفاعل مع رسالتك` : 'حد تفاعل مع رسالتك';
     case 'new_repost':
