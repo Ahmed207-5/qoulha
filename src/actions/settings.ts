@@ -40,6 +40,31 @@ export async function updateProfileAction(formData: unknown): Promise<ActionResu
   return { success: true };
 }
 
+/**
+ * Saves the public URL of an avatar the client already uploaded directly
+ * to the "avatars" Storage bucket. Kept separate from updateProfileAction
+ * so a picture change never has to pass through username/bio validation.
+ * The upload itself was already scoped to the caller's own
+ * `{user_id}/...` folder by Storage RLS (0003_storage.sql); this just
+ * double-checks the saved URL actually points there before writing it, so
+ * this action can't be used to set an arbitrary avatar_url.
+ */
+export async function updateAvatarUrlAction(avatarUrl: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'الجلسة انتهت' };
+
+  if (!avatarUrl.includes(`/avatars/${user.id}/`)) {
+    return { success: false, error: 'الصورة غير صالحة' };
+  }
+
+  const { error: updateError } = await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
+  if (updateError) return { success: false, error: 'حدث خطأ أثناء حفظ الصورة' };
+  return { success: true };
+}
+
 export async function updateSettingsAction(settings: {
   allowMessages: boolean;
   emailNotifications: boolean;

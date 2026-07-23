@@ -6,6 +6,7 @@ import { onboardingSchema, type OnboardingInput } from '@/lib/validations/auth';
 import { updateProfileAction } from '@/actions/settings';
 import { Input, Textarea, FieldError } from '@/components/ui/form-elements';
 import { Button } from '@/components/ui/button';
+import { AvatarUploader } from './avatar-uploader';
 import { toast } from 'sonner';
 import type { Profile } from '@/types/domain';
 
@@ -35,6 +36,7 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <AvatarUploader userId={profile.id} initialAvatarUrl={profile.avatar_url} />
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-brand-700/80 dark:text-brand-200/80">الاسم الكامل</label>
         <Input {...register('fullName')} />
