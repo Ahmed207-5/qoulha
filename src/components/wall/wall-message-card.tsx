@@ -9,6 +9,7 @@ import { ShareButton } from './share-button';
 import { RepostButton } from './repost-button';
 import { ReplyDisplay } from '@/components/message/reply-display';
 import { TagList } from '@/components/message/tag-list';
+import { MentionText } from '@/components/message/mention-text';
 import type { PublicWallMessage } from '@/types/domain';
 
 export function WallMessageCard({
@@ -39,7 +40,9 @@ export function WallMessageCard({
         <span className="text-xs text-brand-500/70">{mood.emoji} {mood.label}</span>
       </div>
 
-      <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">{message.content}</p>
+      <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">
+        <MentionText content={message.content} />
+      </p>
       <TagList tags={message.tags} />
 
       {message.reply && <ReplyDisplay reply={message.reply} recipientName={message.recipient.full_name} />}

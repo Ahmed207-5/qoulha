@@ -12,6 +12,8 @@ import { MoodSelect } from './mood-select';
 import { TagPicker } from './tag-picker';
 import { TurnstileWidget } from './turnstile-widget';
 import { SendSuccessAnimation } from './send-success-animation';
+import { MentionAutocomplete } from './mention-autocomplete';
+import { useMentionInput } from '@/hooks/use-mention-input';
 import { ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,7 +24,7 @@ export function SendMessageForm({ recipientId }: { recipientId: string }) {
 
   const {
     control,
-    register,
+    setValue,
     handleSubmit,
     watch,
     reset,
@@ -34,6 +36,8 @@ export function SendMessageForm({ recipientId }: { recipientId: string }) {
 
   const content = watch('content');
   const remaining = MESSAGE_MAX_LENGTH - (content?.length ?? 0);
+  const { textareaRef, mentionQuery, handleChange, handleSelectMention, handleCursorMove, closeMentionDropdown } =
+    useMentionInput(content ?? '', (next) => setValue('content', next, { shouldValidate: true }));
 
   async function onSubmit(data: SendMessageInput) {
     const result = await sendMessageAction(data);
@@ -87,12 +91,20 @@ export function SendMessageForm({ recipientId }: { recipientId: string }) {
       </div>
 
       <div>
-        <Textarea
-          rows={6}
-          placeholder="اكتب اللي في قلبك..."
-          maxLength={MESSAGE_MAX_LENGTH}
-          {...register('content')}
-        />
+        <div className="relative">
+          {mentionQuery !== null && <MentionAutocomplete query={mentionQuery} onSelect={handleSelectMention} />}
+          <Textarea
+            ref={textareaRef}
+            rows={6}
+            placeholder="اكتب اللي في قلبك... (استخدم @ عشان تشير لحد)"
+            maxLength={MESSAGE_MAX_LENGTH}
+            value={content ?? ''}
+            onChange={handleChange}
+            onClick={handleCursorMove}
+            onKeyUp={handleCursorMove}
+            onBlur={closeMentionDropdown}
+          />
+        </div>
         <div className="mt-1.5 flex items-center justify-between">
           <FieldError message={errors.content?.message} />
           <span

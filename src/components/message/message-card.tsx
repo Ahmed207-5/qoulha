@@ -12,6 +12,7 @@ import { toggleFavoriteAction, togglePublishAction, deleteMessageAction, markMes
 import { toast } from 'sonner';
 import { ReportDialog } from './report-dialog';
 import { ReplyManager } from './reply-manager';
+import { MentionText } from './mention-text';
 
 export function MessageCard({ message, onDeleted }: { message: InboxMessage; onDeleted?: (id: string) => void }) {
   const [msg, setMsg] = React.useState(message);
@@ -118,7 +119,9 @@ export function MessageCard({ message, onDeleted }: { message: InboxMessage; onD
         </div>
       </div>
 
-      <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">{msg.content}</p>
+      <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">
+        <MentionText content={msg.content} />
+      </p>
 
       {/* Reply is fully independent of publishing to the wall — never gated on is_published */}
       <ReplyManager messageId={msg.id} initialReply={msg.reply} />
