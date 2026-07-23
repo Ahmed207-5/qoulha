@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { Cairo, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { Providers } from '@/providers/providers';
 import { Toaster } from 'sonner';
@@ -51,12 +52,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${cairo.variable} ${plexArabic.variable} font-body`}>
-        <Providers>
-          {children}
-          <Toaster position="top-center" richColors dir="rtl" />
-        </Providers>
-      </body>
+     <body className={`${cairo.variable} ${plexArabic.variable} font-body`}>
+  <Providers>
+    {children}
+    <Toaster position="top-center" richColors dir="rtl" />
+  </Providers>
+
+  <GoogleAnalytics
+    gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID!}
+  />
+</body>
     </html>
   );
 }
