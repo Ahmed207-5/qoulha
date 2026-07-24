@@ -119,6 +119,12 @@ export interface NotificationPayload {
   emoji?: ReactionEmoji;
   category?: MessageCategory;
   action?: 'deleted' | 'unpublished';
+  // Present ONLY for a 'mention' notification that came from a private
+  // (unpublished) inbox message — see 0023_message_mention_privacy.sql.
+  // A short, pre-extracted window of text around the @mention; never the
+  // full message. Its presence (not message_id/comment_id) is what tells
+  // the UI this mention can't be navigated to.
+  mention_snippet?: string;
 }
 
 export interface Notification {
