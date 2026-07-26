@@ -53,26 +53,25 @@ create policy "Owner or original sender can view their conversation"
 -- Two narrow insert policies (rather than one combined one) so each side's
 -- 10-message cap is enforced independently, purely in SQL, with no way for
 -- either side to spend the other's budget.
-create policy "Owner can send up to 10 messages in the conversation"
-  on public.conversation_messages for insert
+create policy "Owner can send messages in the conversation"
+  on public.conversation_messages
+  for insert
   with check (
     sender_role = 'owner'
-    and exists (select 1 from public.messages m where m.id = message_id and m.recipient_id = auth.uid())
-    and (
-      select count(*) from public.conversation_messages cm
-      where cm.message_id = conversation_messages.message_id and cm.sender_role = 'owner'
-    ) < 10
+    and exists (
+      select 1
+      from public.messages m
+      where m.id = message_id
+        and m.recipient_id = auth.uid()
+    )
   );
 
-create policy "Original sender can send up to 10 messages in the conversation"
-  on public.conversation_messages for insert
+create policy "Original sender can send messages in the conversation"
+  on public.conversation_messages
+  for insert
   with check (
     sender_role = 'anonymous'
     and public.is_message_sender(message_id)
-    and (
-      select count(*) from public.conversation_messages cm
-      where cm.message_id = conversation_messages.message_id and cm.sender_role = 'anonymous'
-    ) < 10
   );
 
 -- No update/delete policies — messages in the thread are permanent once
