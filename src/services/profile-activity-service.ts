@@ -46,43 +46,25 @@ export interface RepliedMessageEntry {
   createdAt: string;
 }
 
-/**
- * The profile's own owner-side messages in their conversations — the
- * "Replies" tab. Milestone 2: conversation_messages has no author_id (by
- * design — see 0025_conversation_messages.sql), so "authored by this
- * profile" is derived by joining back to the messages this profile owns,
- * rather than filtering a column directly. RLS still applies: a viewer
- * only ever gets rows back for conversations they're a participant in, so
- * visiting someone else's profile shows nothing here even if the row
- * technically matches — this tab is only ever populated for your own profile.
- */
+/** The profile's own replies to messages they received — the "Replies" tab. */
 export async function getProfileReplies(profileId: string, limit = 20): Promise<RepliedMessageEntry[]> {
   const supabase = await createClient();
-
-  const { data: ownMessages } = await supabase
-    .from('messages')
-    .select('id, content')
-    .eq('recipient_id', profileId)
-    .eq('is_deleted', false);
-
-  const messageMap = new Map((ownMessages ?? []).map((m) => [m.id, m.content]));
-  const ids = Array.from(messageMap.keys());
-  if (ids.length === 0) return [];
-
   const { data } = await supabase
-    .from('conversation_messages')
-    .select('message_id, content, created_at')
-    .eq('sender_role', 'owner')
-    .in('message_id', ids)
+    .from('replies')
+    .select('content, created_at, message:messages(id, content)')
+    .eq('author_id', profileId)
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  return ((data ?? []) as { message_id: string; content: string; created_at: string }[]).map((row) => ({
-    messageId: row.message_id,
-    content: messageMap.get(row.message_id) ?? '',
-    replyContent: row.content,
-    createdAt: row.created_at,
-  }));
+  interface Row { content: string; created_at: string; message: { id: string; content: string } | { id: string; content: string }[] | null }
+
+  return ((data as unknown as Row[]) ?? [])
+    .map((row) => {
+      const message = Array.isArray(row.message) ? row.message[0] : row.message;
+      if (!message) return null;
+      return { messageId: message.id, content: message.content, replyContent: row.content, createdAt: row.created_at };
+    })
+    .filter((r): r is RepliedMessageEntry => r !== null);
 }
 
 export interface PostedCommentEntry {
@@ -127,21 +109,8 @@ export interface ActivityEntry {
 export async function getProfileActivity(profileId: string, limit = 30): Promise<ActivityEntry[]> {
   const supabase = await createClient();
 
-  const { data: ownMessages } = await supabase
-    .from('messages')
-    .select('id')
-    .eq('recipient_id', profileId)
-    .eq('is_deleted', false);
-  const ownMessageIds = (ownMessages ?? []).map((m) => m.id);
-
   const [{ data: replies }, { data: comments }, { data: reactions }, { data: reposts }] = await Promise.all([
-    ownMessageIds.length
-      ? supabase
-          .from('conversation_messages')
-          .select('message_id, created_at')
-          .eq('sender_role', 'owner')
-          .in('message_id', ownMessageIds)
-      : Promise.resolve({ data: [] as { message_id: string; created_at: string }[] }),
+    supabase.from('replies').select('message_id, created_at').eq('author_id', profileId),
     supabase.from('comments').select('message_id, content, created_at').eq('author_id', profileId).eq('is_deleted', false),
     supabase.from('message_reactions').select('message_id, emoji, created_at').eq('user_id', profileId),
     supabase.from('reposts').select('original_message_id, created_at').eq('reposted_by', profileId),

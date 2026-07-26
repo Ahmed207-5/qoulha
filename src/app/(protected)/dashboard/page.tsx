@@ -10,7 +10,7 @@ import { MessageCard } from '@/components/message/message-card';
 import { Inbox, MailOpen, CalendarDays, TrendingUp, Eye, Share2, Users, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { CATEGORY_META, MOOD_META } from '@/constants/message';
-import type { InboxMessage, Profile } from '@/types/domain';
+import type { InboxMessage, Profile, Reply } from '@/types/domain';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'لوحة التحكم' };
@@ -26,6 +26,7 @@ interface RecentMessageRow {
   is_published: boolean;
   published_at: string | null;
   created_at: string;
+  replies: Reply | Reply[] | null;
 }
 
 export default async function DashboardPage() {
@@ -35,14 +36,14 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [stats, weekly, { data: recent, error: recentError }, followStats, levelInfo, mostSuccessful, mostActiveDay, { data: profile }] =
+  const [stats, weekly, { data: recent }, followStats, levelInfo, mostSuccessful, mostActiveDay, { data: profile }] =
     await Promise.all([
       getDashboardStats(user.id),
       getWeeklyMessageCounts(user.id),
       supabase
         .from('messages')
         .select(
-          'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at'
+          'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at, replies(id, message_id, author_id, content, created_at, updated_at)'
         )
         .eq('recipient_id', user.id)
         .eq('is_deleted', false)
@@ -54,8 +55,6 @@ export default async function DashboardPage() {
       getMostActiveDay(user.id),
       supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     ]);
-
-  if (recentError) console.error('[DashboardPage] recent messages query failed', recentError);
 
   const profileUrl = profile ? `${process.env.NEXT_PUBLIC_SITE_URL}/u/${(profile as Profile).username}` : null;
 
@@ -70,6 +69,7 @@ export default async function DashboardPage() {
     is_published: row.is_published,
     published_at: row.published_at,
     created_at: row.created_at,
+    reply: Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies,
   }));
 
   return (

@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { MessageCategory, MessageMood, PublicWallMessage, ReactionEmoji } from '@/types/domain';
+import type { MessageCategory, MessageMood, PublicWallMessage, ReactionEmoji, Reply } from '@/types/domain';
 import { REACTION_EMOJIS } from '@/constants/message';
 
 export type SearchSort = 'newest' | 'oldest' | 'most_reacted' | 'most_commented' | 'most_reposted';
@@ -28,6 +28,7 @@ interface SearchRow {
   created_at: string;
   recipient: PublicWallMessage['recipient'] | PublicWallMessage['recipient'][];
   message_reactions: { emoji: string }[] | null;
+  replies: Reply | Reply[] | null;
 }
 
 /**
@@ -49,7 +50,8 @@ export async function searchMessages(
     .select(
       `id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at,
        recipient:profiles!messages_recipient_id_fkey(username, full_name, avatar_url),
-       message_reactions(emoji)`,
+       message_reactions(emoji),
+       replies(id, message_id, author_id, content, created_at, updated_at)`,
       { count: 'exact' }
     )
     .eq('is_published', true)
@@ -63,11 +65,7 @@ export async function searchMessages(
 
   const from = page * pageSize;
   const { data, count, error } = await q.range(from, from + pageSize - 1);
-  if (error) {
-    console.error('[searchMessages]', error);
-    return { messages: [], totalCount: 0 };
-  }
-  if (!data) return { messages: [], totalCount: 0 };
+  if (error || !data) return { messages: [], totalCount: 0 };
 
   const rows = data as unknown as SearchRow[];
   const ids = rows.map((r) => r.id);
@@ -98,6 +96,7 @@ export async function searchMessages(
       }
       const recipient = Array.isArray(row.recipient) ? row.recipient[0] : row.recipient;
       if (!recipient) return null;
+      const reply = Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies;
       const totalReactions = Object.values(counts).reduce((a, b) => a + b, 0);
 
       return {
@@ -111,6 +110,7 @@ export async function searchMessages(
         is_published: row.is_published,
         published_at: row.published_at,
         created_at: row.created_at,
+        reply,
         recipient,
         reaction_counts: counts,
         comments_count: commentsCountMap.get(row.id) ?? 0,

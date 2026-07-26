@@ -10,13 +10,7 @@ import type { Notification } from '@/types/domain';
 function getNotificationHref(notification: Notification): string {
   switch (notification.type) {
     case 'new_message':
-      // Milestone 2: an anonymous sender writing back in the conversation
-      // also uses 'new_message' (see notify_on_conversation_message() in
-      // 0025_conversation_messages.sql) — deep-link straight to the
-      // thread when we have a message_id. The very first message an
-      // owner ever gets also carries message_id, so this only ever
-      // improves on the old hardcoded '/inbox' fallback.
-      return notification.payload.message_id ? `/m/${notification.payload.message_id}` : '/inbox';
+      return '/inbox';
     case 'new_reply':
     case 'new_comment':
     case 'mention':

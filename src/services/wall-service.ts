@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { PublicWallMessage, ReactionEmoji, Tag } from '@/types/domain';
+import type { PublicWallMessage, ReactionEmoji, Reply, Tag } from '@/types/domain';
 import { REACTION_EMOJIS } from '@/constants/message';
 
 export interface WallQuery {
@@ -30,7 +30,8 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
     .select(
       `id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at,
        recipient:profiles!messages_recipient_id_fkey(username, full_name, avatar_url),
-       message_reactions(emoji)`
+       message_reactions(emoji),
+       replies(id, message_id, author_id, content, created_at, updated_at)`
     )
     .eq('is_published', true)
     .eq('is_deleted', false)
@@ -51,11 +52,7 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
   }
 
   const { data, error } = await q;
-  if (error) {
-    console.error('[getWallMessagesAction]', error);
-    return { messages: [], nextCursor: null };
-  }
-  if (!data) return { messages: [], nextCursor: null };
+  if (error || !data) return { messages: [], nextCursor: null };
 
   interface WallRow {
     id: string;
@@ -70,6 +67,7 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
     created_at: string;
     recipient: PublicWallMessage['recipient'] | PublicWallMessage['recipient'][];
     message_reactions: { emoji: string }[] | null;
+    replies: Reply | Reply[] | null;
   }
 
   const rows = data as unknown as WallRow[];
@@ -128,6 +126,7 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
       }
       const recipient = Array.isArray(row.recipient) ? row.recipient[0] : row.recipient;
       if (!recipient) return null;
+      const reply = Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies;
 
       return {
         id: row.id,
@@ -140,6 +139,7 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
         is_published: row.is_published,
         published_at: row.published_at,
         created_at: row.created_at,
+        reply,
         recipient,
         reaction_counts: counts,
         comments_count: commentsCountMap.get(row.id) ?? 0,

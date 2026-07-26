@@ -46,22 +46,18 @@ export interface SuggestedUser {
   public_message_count: number;
 }
 
-export type ConversationSenderRole = 'owner' | 'anonymous';
-
 /**
- * A single message in the lightweight conversation thread between the
- * message owner and the original anonymous sender (see
- * 0025_conversation_messages.sql). Replaces Milestone 1's single Reply
- * with an ongoing thread capped at 10 messages per side (20 total).
- * Deliberately carries no author identity at all — only which side sent
- * it — so there is nothing here that could ever reveal the sender.
+ * Milestone 1: the message owner's single official reply, shown directly
+ * below the message wherever it's displayed (wall card, message detail
+ * page, inbox).
  */
-export interface ConversationMessage {
+export interface Reply {
   id: string;
   message_id: string;
-  sender_role: ConversationSenderRole;
+  author_id: string;
   content: string;
   created_at: string;
+  updated_at: string;
 }
 
 /** Milestone 1: a comment left by any authenticated user on a published message. */
@@ -91,6 +87,8 @@ export interface InboxMessage {
   is_published: boolean;
   published_at: string | null;
   created_at: string;
+  /** Milestone 1: the owner's own reply to this message, if they've posted one. */
+  reply: Reply | null;
 }
 
 export interface PublicWallMessage extends InboxMessage {

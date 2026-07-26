@@ -1,12 +1,10 @@
 import { getMessageDetail, getRepostsForMessage } from '@/services/message-detail-service';
-import { getConversation } from '@/services/conversation-service';
 import { getCommentsAction } from '@/actions/comments';
 import { createClient } from '@/lib/supabase/server';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
 import { WallMessageCard } from '@/components/wall/wall-message-card';
 import { RepostedByList } from '@/components/wall/reposted-by-list';
 import { CommentList } from '@/components/message/comment-list';
-import { ConversationThread } from '@/components/message/conversation-thread';
 import { FloatingBackground } from '@/components/landing/floating-background';
 import { Navbar } from '@/components/landing/navbar';
 import { CATEGORY_META } from '@/constants/message';
@@ -60,11 +58,9 @@ export default async function MessageDetailPage({ params }: Props) {
   const message = await getMessageDetail(messageId, user?.id);
   if (!message) notFound();
 
-  const [initialComments, reposts, conversation] = await Promise.all([
-    message.is_published ? getCommentsAction(messageId) : Promise.resolve({ comments: [], nextCursor: null }),
-    message.is_published ? getRepostsForMessage(messageId) : Promise.resolve([]),
-    getConversation(messageId, user?.id),
-  ]);
+  const [initialComments, reposts] = message.is_published
+    ? await Promise.all([getCommentsAction(messageId), getRepostsForMessage(messageId)])
+    : [{ comments: [], nextCursor: null }, []];
 
   return (
     <>
@@ -72,16 +68,6 @@ export default async function MessageDetailPage({ params }: Props) {
       <Navbar userId={user?.id} initialUnreadCount={unreadCount} />
       <div className="mx-auto max-w-lg px-6 pb-16 pt-32">
         <WallMessageCard message={message} viewerId={user?.id} />
-
-        {conversation.viewerRole && (
-          <ConversationThread
-            messageId={messageId}
-            viewerRole={conversation.viewerRole}
-            initialMessages={conversation.messages}
-            initialOwnerCount={conversation.ownerMessageCount}
-            initialAnonymousCount={conversation.anonymousMessageCount}
-          />
-        )}
 
         {message.is_published && (
           <>
