@@ -58,13 +58,15 @@ export const commentSchema = z.object({
 
 export type CommentInput = z.infer<typeof commentSchema>;
 
-export const replySchema = z.object({
+// Milestone 2: lightweight anonymous conversation (replaces replySchema)
+
+export const conversationMessageSchema = z.object({
   messageId: z.string().uuid(),
   content: z
     .string()
     .trim()
-    .min(1, 'اكتب ردك الأول')
-    .max(MESSAGE_MAX_LENGTH, `الرد أطول من ${MESSAGE_MAX_LENGTH} حرف`),
+    .min(1, 'اكتب رسالتك الأول')
+    .max(MESSAGE_MAX_LENGTH, `الرسالة أطول من ${MESSAGE_MAX_LENGTH} حرف`),
 });
 
-export type ReplyInput = z.infer<typeof replySchema>;
+export type ConversationMessageInput = z.infer<typeof conversationMessageSchema>;

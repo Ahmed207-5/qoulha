@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { PublicWallMessage, ReactionEmoji, Reply } from '@/types/domain';
+import type { PublicWallMessage, ReactionEmoji } from '@/types/domain';
 import { REACTION_EMOJIS } from '@/constants/message';
 
 export type TrendingPeriod = 'daily' | 'weekly' | 'monthly';
@@ -26,7 +26,6 @@ interface TrendingRow {
   created_at: string;
   recipient: PublicWallMessage['recipient'] | PublicWallMessage['recipient'][];
   message_reactions: { emoji: string }[] | null;
-  replies: Reply | Reply[] | null;
 }
 
 /** Engagement score = reactions + comments×2 + reposts×3 (comments/reposts signal stronger engagement than a tap). */
@@ -39,15 +38,18 @@ export async function getTrendingMessages(period: TrendingPeriod, limit = 20): P
     .select(
       `id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at,
        recipient:profiles!messages_recipient_id_fkey(username, full_name, avatar_url),
-       message_reactions(emoji),
-       replies(id, message_id, author_id, content, created_at, updated_at)`
+       message_reactions(emoji)`
     )
     .eq('is_published', true)
     .eq('is_deleted', false)
     .gte('published_at', since)
     .limit(200); // candidate pool, ranked below then trimmed to `limit`
 
-  if (error || !data) return [];
+  if (error) {
+    console.error('[getTrendingMessages]', error);
+    return [];
+  }
+  if (!data) return [];
 
   const rows = data as unknown as TrendingRow[];
   const ids = rows.map((r) => r.id);
@@ -78,7 +80,6 @@ export async function getTrendingMessages(period: TrendingPeriod, limit = 20): P
       }
       const recipient = Array.isArray(row.recipient) ? row.recipient[0] : row.recipient;
       if (!recipient) return null;
-      const reply = Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies;
       const reactionsTotal = Object.values(counts).reduce((a, b) => a + b, 0);
       const commentsCount = commentsCountMap.get(row.id) ?? 0;
       const repostCount = repostCountMap.get(row.id) ?? 0;
@@ -94,7 +95,6 @@ export async function getTrendingMessages(period: TrendingPeriod, limit = 20): P
         is_published: row.is_published,
         published_at: row.published_at,
         created_at: row.created_at,
-        reply,
         recipient,
         reaction_counts: counts,
         comments_count: commentsCount,
