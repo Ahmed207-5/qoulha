@@ -28,3 +28,8 @@ export const MOOD_META: Record<MessageMood, { label: string; emoji: string }> = 
 export const REACTION_EMOJIS: ReactionEmoji[] = ['❤️', '😂', '🥺', '👏', '🔥'];
 
 export const ANONYMITY_NOTICE = 'لن نظهر هويتك للشخص المستقبل.';
+
+// ---------- Lightweight anonymous conversation ----------
+// Mirrors the per-side caps enforced in 0025_conversation_messages.sql.
+export const MAX_CONVERSATION_MESSAGES_PER_SIDE = 10;
+export const CONVERSATION_LIMIT_REACHED_TEXT = 'تم الوصول إلى الحد الأقصى للمحادثة.';

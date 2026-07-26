@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { PublicWallMessage, Reply, ReactionEmoji, Profile, Tag } from '@/types/domain';
+import type { PublicWallMessage, ReactionEmoji, Profile, Tag } from '@/types/domain';
 import { REACTION_EMOJIS } from '@/constants/message';
 
 interface MessageDetailRow {
@@ -17,7 +17,6 @@ interface MessageDetailRow {
   created_at: string;
   recipient: PublicWallMessage['recipient'] | PublicWallMessage['recipient'][];
   message_reactions: { emoji: string }[] | null;
-  replies: Reply | Reply[] | null;
 }
 
 /**
@@ -28,8 +27,13 @@ interface MessageDetailRow {
  * sending) the original sender can also see their own unpublished message
  * via the recipient/is_message_sender policies in
  * 0002_rls_policies.sql / 0020_private_replies.sql. This lets a sender
- * follow a "new_reply" notification to a private reply without requiring
- * the recipient to publish first.
+ * follow a "new_reply" notification to a private conversation without
+ * requiring the recipient to publish first.
+ *
+ * Milestone 2: the conversation thread itself is fetched separately via
+ * getConversation() (conversation-service.ts) — it's private to the owner
+ * and original sender only (never public, even once published), so it's
+ * deliberately not joined into this shared, semi-public shape.
  */
 export async function getMessageDetail(messageId: string, viewerId?: string): Promise<PublicWallMessage | null> {
   const supabase = await createClient();
@@ -39,14 +43,17 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
     .select(
       `id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at,
        recipient:profiles!messages_recipient_id_fkey(username, full_name, avatar_url),
-       message_reactions(emoji),
-       replies(id, message_id, author_id, content, created_at, updated_at)`
+       message_reactions(emoji)`
     )
     .eq('id', messageId)
     .eq('is_deleted', false)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    console.error('[getMessageDetail] Supabase query failed:', error);
+    return null;
+  }
+  if (!data) return null;
   const row = data as unknown as MessageDetailRow;
 
   const recipient = Array.isArray(row.recipient) ? row.recipient[0] : row.recipient;
@@ -56,7 +63,6 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
   for (const r of row.message_reactions ?? []) {
     if (counts[r.emoji as ReactionEmoji] !== undefined) counts[r.emoji as ReactionEmoji]++;
   }
-  const reply = Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies;
 
   const [{ count: commentsCount }, { count: repostCount }, myReactionResult, myRepostResult, { data: tagRows }] = await Promise.all([
     supabase.from('comments').select('id', { count: 'exact', head: true }).eq('message_id', messageId).eq('is_deleted', false),
@@ -85,7 +91,6 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
     is_published: row.is_published,
     published_at: row.published_at,
     created_at: row.created_at,
-    reply,
     recipient,
     reaction_counts: counts,
     comments_count: commentsCount ?? 0,

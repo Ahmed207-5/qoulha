@@ -90,6 +90,25 @@ export async function checkRepostRateLimit(identifier: string): Promise<{ allowe
   return { allowed: true };
 }
 
+const conversationRatelimit = hasUpstash
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 conversation messages per minute per user
+      analytics: true,
+      prefix: 'qoulha:conversation',
+    })
+  : null;
+
+export async function checkConversationRateLimit(identifier: string): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
+  if (!conversationRatelimit) {
+    console.warn('[rate-limit] Upstash not configured; skipping conversation rate limit check.');
+    return { allowed: true };
+  }
+  const { success, reset } = await conversationRatelimit.limit(identifier);
+  if (!success) return { allowed: false, retryAfterSeconds: Math.ceil((reset - Date.now()) / 1000) };
+  return { allowed: true };
+}
+
 const followRatelimit = hasUpstash
   ? new Ratelimit({
       redis: Redis.fromEnv(),

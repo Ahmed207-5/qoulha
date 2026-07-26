@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import type { InboxMessage, MessageCategory, MessageMood, Reply } from '@/types/domain';
+import type { InboxMessage, MessageCategory, MessageMood } from '@/types/domain';
 
 export interface InboxQuery {
   page: number;
@@ -28,7 +28,6 @@ interface InboxRow {
   is_published: boolean;
   published_at: string | null;
   created_at: string;
-  replies: Reply | Reply[] | null;
 }
 
 export async function getInboxMessagesAction(query: InboxQuery): Promise<InboxQueryResult> {
@@ -41,7 +40,7 @@ export async function getInboxMessagesAction(query: InboxQuery): Promise<InboxQu
   let q = supabase
     .from('messages')
     .select(
-      'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at, replies(id, message_id, author_id, content, created_at, updated_at)',
+      'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at',
       { count: 'exact' }
     )
     .eq('recipient_id', user.id)
@@ -59,7 +58,15 @@ export async function getInboxMessagesAction(query: InboxQuery): Promise<InboxQu
 
   const { data, count, error } = await q.order('created_at', { ascending: false }).range(from, to);
 
-  if (error || !data) return { messages: [], totalCount: 0 };
+  if (error) {
+    // Previously swallowed silently, which made real failures (e.g. a stale
+    // PostgREST schema cache right after a migration, a transient RLS/auth
+    // error, etc.) indistinguishable from "this user genuinely has no
+    // messages." Surface it in server logs so it's diagnosable.
+    console.error('[getInboxMessagesAction] Supabase query failed:', error);
+    return { messages: [], totalCount: 0 };
+  }
+  if (!data) return { messages: [], totalCount: 0 };
 
   const messages: InboxMessage[] = (data as unknown as InboxRow[]).map((row) => ({
     id: row.id,
@@ -72,7 +79,6 @@ export async function getInboxMessagesAction(query: InboxQuery): Promise<InboxQu
     is_published: row.is_published,
     published_at: row.published_at,
     created_at: row.created_at,
-    reply: Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies,
   }));
 
   return { messages, totalCount: count ?? 0 };

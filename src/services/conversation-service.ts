@@ -39,11 +39,15 @@ export async function getConversation(messageId: string, viewerId?: string): Pro
 
   if (!viewerRole) return EMPTY;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('conversation_messages')
     .select('id, message_id, sender_role, content, created_at')
     .eq('message_id', messageId)
     .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('[getConversation] Supabase query failed:', error);
+  }
 
   const messages = (data ?? []) as ConversationMessage[];
   const ownerMessageCount = messages.filter((m) => m.sender_role === 'owner').length;

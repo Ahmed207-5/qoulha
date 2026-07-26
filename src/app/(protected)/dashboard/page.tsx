@@ -10,7 +10,7 @@ import { MessageCard } from '@/components/message/message-card';
 import { Inbox, MailOpen, CalendarDays, TrendingUp, Eye, Share2, Users, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { CATEGORY_META, MOOD_META } from '@/constants/message';
-import type { InboxMessage, Profile, Reply } from '@/types/domain';
+import type { InboxMessage, Profile } from '@/types/domain';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'لوحة التحكم' };
@@ -26,7 +26,6 @@ interface RecentMessageRow {
   is_published: boolean;
   published_at: string | null;
   created_at: string;
-  replies: Reply | Reply[] | null;
 }
 
 export default async function DashboardPage() {
@@ -43,7 +42,7 @@ export default async function DashboardPage() {
       supabase
         .from('messages')
         .select(
-          'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at, replies(id, message_id, author_id, content, created_at, updated_at)'
+          'id, recipient_id, content, category, mood, is_read, is_favorited, is_published, published_at, created_at'
         )
         .eq('recipient_id', user.id)
         .eq('is_deleted', false)
@@ -69,7 +68,6 @@ export default async function DashboardPage() {
     is_published: row.is_published,
     published_at: row.published_at,
     created_at: row.created_at,
-    reply: Array.isArray(row.replies) ? (row.replies[0] ?? null) : row.replies,
   }));
 
   return (

@@ -4,14 +4,14 @@ import * as React from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { Heart, Share2, Trash2, Flag, MoreVertical } from 'lucide-react';
+import Link from 'next/link';
+import { Heart, Share2, Trash2, Flag, MoreVertical, MessagesSquare } from 'lucide-react';
 import { CATEGORY_META, MOOD_META } from '@/constants/message';
 import type { InboxMessage } from '@/types/domain';
 import { cn } from '@/lib/utils';
 import { toggleFavoriteAction, togglePublishAction, deleteMessageAction, markMessageReadAction } from '@/actions/message-mutations';
 import { toast } from 'sonner';
 import { ReportDialog } from './report-dialog';
-import { ReplyManager } from './reply-manager';
 import { MentionText } from './mention-text';
 
 export function MessageCard({ message, onDeleted }: { message: InboxMessage; onDeleted?: (id: string) => void }) {
@@ -123,8 +123,14 @@ export function MessageCard({ message, onDeleted }: { message: InboxMessage; onD
         <MentionText content={msg.content} />
       </p>
 
-      {/* Reply is fully independent of publishing to the wall — never gated on is_published */}
-      <ReplyManager messageId={msg.id} initialReply={msg.reply} />
+      {/* Milestone 2: the actual back-and-forth lives on the message detail page (pinned original + thread) */}
+      <Link
+        href={`/m/${msg.id}`}
+        className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-brand-500 hover:underline"
+      >
+        <MessagesSquare className="h-3.5 w-3.5" />
+        الدخول للمحادثة
+      </Link>
 
       <div className="mt-4 flex items-center justify-between">
         <span className="text-[11px] text-brand-500/60">
