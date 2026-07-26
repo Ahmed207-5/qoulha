@@ -20,7 +20,7 @@ export function SendSuccessAnimation({ onSendAnother }: { onSendAnother: () => v
       </motion.div>
       <h3 className="mt-5 font-display text-xl font-bold text-brand-950 dark:text-white">وصلت رسالتك</h3>
       <p className="mt-1.5 text-sm text-brand-700/80 dark:text-brand-200/80">
-        هوصلتلوش من غير ما يعرف حد إنك انت اللي بعتها.
+        رسالتك وصلت من غير ما يعرف حد إنك انت اللي بعتها.
       </p>
       <Button variant="secondary" className="mt-6" onClick={onSendAnother}>
         ابعت رسالة تانية
