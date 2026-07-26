@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Inbox, Settings } from 'lucide-react';
+import { LayoutDashboard, Inbox, Settings, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { href: '/inbox', label: 'الرسائل', icon: Inbox },
+  { href: '/suggested-users', label: 'قد تعرفهم', icon: Users },
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 

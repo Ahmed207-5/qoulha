@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Inbox, Settings, MessageCircleHeart, LogOut, Shield, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Inbox, Settings, MessageCircleHeart, LogOut, Shield, BarChart3, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/actions/auth';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -10,6 +10,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { href: '/inbox', label: 'الرسائل', icon: Inbox },
+  { href: '/suggested-users', label: 'قد تعرفهم', icon: Users },
   { href: '/analytics', label: 'الإحصائيات', icon: BarChart3 },
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];

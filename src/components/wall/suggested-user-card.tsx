@@ -8,7 +8,7 @@ import type { SuggestedUser } from '@/types/domain';
 
 export function SuggestedUserCard({ user }: { user: SuggestedUser }) {
   return (
-    <div className="glass group flex w-36 shrink-0 snap-start flex-col items-center gap-1.5 rounded-3xl p-3.5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:w-40">
+    <div className="glass group flex h-full flex-col items-center gap-1.5 rounded-3xl p-3.5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
       <Link
         href={`/u/${user.username}`}
         // Stop the drag-to-scroll carousel from ever seeing this as the

@@ -113,7 +113,9 @@ export function SuggestedUsersCarousel({
         className="no-scrollbar flex snap-x snap-mandatory cursor-grab gap-3 overflow-x-auto scroll-smooth pb-2 active:cursor-grabbing"
       >
         {users.map((user) => (
-          <SuggestedUserCard key={user.id} user={user} />
+          <div key={user.id} className="w-36 shrink-0 snap-start sm:w-40">
+            <SuggestedUserCard user={user} />
+          </div>
         ))}
         {loadingMore &&
           Array.from({ length: SKELETON_COUNT }).map((_, i) => (
