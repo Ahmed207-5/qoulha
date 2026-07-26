@@ -1,13 +1,24 @@
 'use client';
 
 import * as React from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { getSuggestedUsers } from '@/services/suggested-users-service';
 import { SuggestedUserCard } from './suggested-user-card';
 import type { SuggestedUser } from '@/types/domain';
 
 const SKELETON_COUNT = 4;
 
-export function SuggestedUsersCarousel({ initialUsers }: { initialUsers: SuggestedUser[] }) {
+export function SuggestedUsersCarousel({
+  initialUsers,
+  pageSize = 10,
+  showMoreButton = false,
+}: {
+  initialUsers: SuggestedUser[];
+  /** Batch size for each subsequent "load more" fetch. Defaults to 10 — the Wall's existing behavior, unchanged. */
+  pageSize?: number;
+  /** Profile page's compact carousel wants an explicit "عرض المزيد" trigger in addition to the scroll-to-end auto-load. */
+  showMoreButton?: boolean;
+}) {
   const [users, setUsers] = React.useState(initialUsers);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [exhausted, setExhausted] = React.useState(initialUsers.length === 0);
@@ -23,7 +34,7 @@ export function SuggestedUsersCarousel({ initialUsers }: { initialUsers: Suggest
     if (loadingRef.current || exhausted) return;
     loadingRef.current = true;
     setLoadingMore(true);
-    const more = await getSuggestedUsers(usersRef.current.map((u) => u.id), 10);
+    const more = await getSuggestedUsers(usersRef.current.map((u) => u.id), pageSize);
     loadingRef.current = false;
     setLoadingMore(false);
     if (more.length === 0) {
@@ -31,7 +42,7 @@ export function SuggestedUsersCarousel({ initialUsers }: { initialUsers: Suggest
     } else {
       setUsers((prev) => [...prev, ...more]);
     }
-  }, [exhausted]);
+  }, [exhausted, pageSize]);
 
   // Infinite lazy loading: fetch more once the end-of-list sentinel scrolls into view.
   React.useEffect(() => {
@@ -56,6 +67,10 @@ export function SuggestedUsersCarousel({ initialUsers }: { initialUsers: Suggest
   }
 
   // Click-and-drag scroll on desktop only — touch keeps native swipe/snap.
+  // Interactive elements inside each card (the avatar/name link, the Follow
+  // button) stop this event from bubbling here at all — see
+  // suggested-user-card.tsx — so a plain click on them is never mistaken
+  // for the start of a drag.
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (e.pointerType !== 'mouse') return;
     draggingRef.current = true;
@@ -70,17 +85,24 @@ export function SuggestedUsersCarousel({ initialUsers }: { initialUsers: Suggest
     draggingRef.current = false;
   }
 
-  function handleFollowed(userId: string) {
-    // Small delay so the button's own success state is visible for a beat
-    // before the card leaves — a followed person is no longer a "suggestion".
-    setTimeout(() => setUsers((prev) => prev.filter((u) => u.id !== userId)), 600);
-  }
-
   if (users.length === 0 && !loadingMore) return null;
 
   return (
     <section className="mb-10">
-      <h2 className="mb-3 font-display text-lg font-bold text-brand-950 dark:text-white">✨ قد تعرفهم</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-display text-lg font-bold text-brand-950 dark:text-white">✨ قد تعرفهم</h2>
+        {showMoreButton && !exhausted && (
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="flex items-center gap-0.5 text-xs font-semibold text-brand-500 hover:underline disabled:opacity-50"
+          >
+            عرض المزيد
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
       <div
         ref={scrollerRef}
         onWheel={handleWheel}
@@ -91,11 +113,11 @@ export function SuggestedUsersCarousel({ initialUsers }: { initialUsers: Suggest
         className="no-scrollbar flex snap-x snap-mandatory cursor-grab gap-3 overflow-x-auto scroll-smooth pb-2 active:cursor-grabbing"
       >
         {users.map((user) => (
-          <SuggestedUserCard key={user.id} user={user} onFollowed={() => handleFollowed(user.id)} />
+          <SuggestedUserCard key={user.id} user={user} />
         ))}
         {loadingMore &&
           Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-            <div key={`skeleton-${i}`} className="glass h-56 w-40 shrink-0 animate-pulse rounded-3xl sm:w-44" />
+            <div key={`skeleton-${i}`} className="glass h-48 w-36 shrink-0 animate-pulse rounded-3xl sm:w-40" />
           ))}
         {!exhausted && <div ref={sentinelRef} className="w-px shrink-0" aria-hidden />}
       </div>

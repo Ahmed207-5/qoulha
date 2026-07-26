@@ -3,6 +3,7 @@ import { getFollowStats } from '@/services/follow-service';
 import { getProfileStats } from '@/services/profile-activity-service';
 import { getUserLevelInfo, getAllBadgesWithEarnedState } from '@/services/gamification-service';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
+import { getSuggestedUsers } from '@/services/suggested-users-service';
 import { createClient } from '@/lib/supabase/server';
 import { ProfileHeader } from '@/components/profile/profile-header';
 import { LevelProgress } from '@/components/profile/level-progress';
@@ -12,6 +13,7 @@ import { ProfileTabs } from '@/components/profile/profile-tabs';
 import { ProfileJsonLd } from '@/components/shared/profile-json-ld';
 import { FloatingBackground } from '@/components/landing/floating-background';
 import { Navbar } from '@/components/landing/navbar';
+import { SuggestedUsersCarousel } from '@/components/wall/suggested-users-carousel';
 import { Card } from '@/components/ui/form-elements';
 import { computeFingerprint, getRequestIp } from '@/lib/fingerprint';
 import { headers } from 'next/headers';
@@ -65,12 +67,13 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
   // Fire-and-forget — a slow analytics write should never block the page render
   void logProfileVisit(profile.id, fingerprint, headerList.get('referer'), source);
 
-  const [followStats, profileStats, levelInfo, badges, unreadCount] = await Promise.all([
+  const [followStats, profileStats, levelInfo, badges, unreadCount, suggestedUsers] = await Promise.all([
     getFollowStats(profile.id, user?.id),
     getProfileStats(profile.id),
     getUserLevelInfo(profile.id),
     getAllBadgesWithEarnedState(profile.id),
     user ? getUnreadNotificationCount(user.id) : Promise.resolve(0),
+    user ? getSuggestedUsers([], 4) : Promise.resolve([]),
   ]);
 
   const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/u/${profile.username}`;
@@ -136,6 +139,12 @@ export default async function PublicProfilePage({ params, searchParams }: Props)
             </h2>
             <ProfileShareCard profile={profile} profileUrl={profileUrl} />
           </Card>
+        )}
+
+        {user && suggestedUsers.length > 0 && (
+          <div className="mt-6">
+            <SuggestedUsersCarousel initialUsers={suggestedUsers} pageSize={4} showMoreButton />
+          </div>
         )}
 
         <ProfileTabs profileId={profile.id} viewerId={user?.id} />

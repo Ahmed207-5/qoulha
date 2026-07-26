@@ -1,41 +1,25 @@
 'use client';
 
-import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Users, MessageCircle, UserPlus, UserCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toggleFollowAction } from '@/actions/follows';
-import { toast } from 'sonner';
+import { Users, MessageCircle } from 'lucide-react';
+import { FollowButton } from '@/components/profile/follow-button';
 import type { SuggestedUser } from '@/types/domain';
 
-export function SuggestedUserCard({ user, onFollowed }: { user: SuggestedUser; onFollowed: () => void }) {
-  const [following, setFollowing] = React.useState(false);
-  const [pending, setPending] = React.useState(false);
-
-  async function handleToggle() {
-    if (pending) return;
-    const next = !following;
-    setFollowing(next);
-    setPending(true);
-    const result = await toggleFollowAction(user.id, next);
-    setPending(false);
-
-    if (!result.success) {
-      setFollowing(!next);
-      toast.error(result.error ?? 'حدث خطأ');
-      return;
-    }
-    toast.success(next ? `بقيت متابع ${user.full_name}` : `مبقتش متابع ${user.full_name}`);
-    if (next) onFollowed();
-  }
-
+export function SuggestedUserCard({ user }: { user: SuggestedUser }) {
   return (
-    <div className="glass group flex w-40 shrink-0 snap-start flex-col items-center gap-2 rounded-3xl p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:w-44">
-      <Link href={`/u/${user.username}`} className="flex flex-col items-center gap-2">
-        <div className="h-16 w-16 overflow-hidden rounded-full bg-brand-500/10 ring-2 ring-transparent transition group-hover:ring-brand-400/50">
+    <div className="glass group flex w-36 shrink-0 snap-start flex-col items-center gap-1.5 rounded-3xl p-3.5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:w-40">
+      <Link
+        href={`/u/${user.username}`}
+        // Stop the drag-to-scroll carousel from ever seeing this as the
+        // start of a drag, so a plain click always reaches the link/button
+        // untouched — see suggested-users-carousel.tsx's handlePointerDown.
+        onPointerDown={(e) => e.stopPropagation()}
+        className="flex flex-col items-center gap-1.5"
+      >
+        <div className="h-14 w-14 overflow-hidden rounded-full bg-brand-500/10 ring-2 ring-transparent transition group-hover:ring-brand-400/50">
           {user.avatar_url && (
-            <Image src={user.avatar_url} alt="" width={64} height={64} className="h-full w-full object-cover" />
+            <Image src={user.avatar_url} alt="" width={56} height={56} className="h-full w-full object-cover" />
           )}
         </div>
         <div className="min-w-0">
@@ -57,16 +41,18 @@ export function SuggestedUserCard({ user, onFollowed }: { user: SuggestedUser; o
         </span>
       </div>
 
-      <Button
-        variant={following ? 'secondary' : 'primary'}
-        size="sm"
-        className="mt-1 w-full"
-        onClick={handleToggle}
-        isLoading={pending}
+      <div
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="mt-1 flex w-full justify-center"
       >
-        {following ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
-        {following ? 'بتتابعه' : 'متابعة'}
-      </Button>
+        <FollowButton
+          targetUserId={user.id}
+          initialIsFollowing={false}
+          isAuthenticated
+          isOwnProfile={false}
+        />
+      </div>
     </div>
   );
 }
