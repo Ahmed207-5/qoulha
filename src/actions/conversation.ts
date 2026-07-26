@@ -91,9 +91,39 @@ export async function sendConversationMessageAction(formData: unknown): Promise<
     .from('conversation_messages')
     .insert({ message_id: parsed.data.messageId, sender_role: role, content: cleaned })
     .select('id, message_id, sender_role, content, created_at')
-    .single();
+    .maybeSingle();
 
-  if (error || !data) return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة' };
+  if (error) {
+    // This was previously swallowed, which is why the cause was invisible.
+    // Logging the full PostgrestError here (code/message/details/hint) is
+    // what actually tells us whether this is an RLS with-check failure, a
+    // check-constraint violation, or something else — the generic Arabic
+    // message stays the same for the user, this only changes what shows up
+    // in server logs.
+    console.error('[sendConversationMessageAction] insert failed:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      role,
+      messageId: parsed.data.messageId,
+    });
+    return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة' };
+  }
+
+  if (!data) {
+    // No Postgres error, but no row came back either — this shape means the
+    // INSERT itself was accepted (WITH CHECK passed) but the immediate
+    // re-select PostgREST does to return the row found nothing under the
+    // table's SELECT policy. With the current policies this pair should
+    // never disagree, so if this line ever fires it's the signal to compare
+    // the INSERT and SELECT policies on conversation_messages directly.
+    console.error('[sendConversationMessageAction] insert returned no error but no row', {
+      role,
+      messageId: parsed.data.messageId,
+    });
+    return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة' };
+  }
 
   revalidatePath(`/m/${parsed.data.messageId}`);
   return { success: true, message: data as ConversationMessage };
