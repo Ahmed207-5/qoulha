@@ -2,10 +2,12 @@ import { WallGrid } from '@/components/wall/wall-grid';
 import { TrendingTagsBar } from '@/components/wall/trending-tags-bar';
 import { ConfessionOfTheDay } from '@/components/wall/confession-of-the-day';
 import { RandomMessageButton } from '@/components/wall/random-message-button';
+import { SuggestedUsersCarousel } from '@/components/wall/suggested-users-carousel';
 import { Navbar } from '@/components/landing/navbar';
 import { FloatingBackground } from '@/components/landing/floating-background';
 import { createClient } from '@/lib/supabase/server';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
+import { getSuggestedUsers } from '@/services/suggested-users-service';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -19,6 +21,7 @@ export default async function WallPage() {
     data: { user },
   } = await supabase.auth.getUser();
   const unreadCount = user ? await getUnreadNotificationCount(user.id) : 0;
+  const suggestedUsers = user ? await getSuggestedUsers([], 10) : [];
 
   return (
     <>
@@ -33,6 +36,7 @@ export default async function WallPage() {
           </div>
         </div>
         <ConfessionOfTheDay viewerId={user?.id} />
+        {user && suggestedUsers.length > 0 && <SuggestedUsersCarousel initialUsers={suggestedUsers} />}
         <TrendingTagsBar />
         <WallGrid viewerId={user?.id} />
       </div>

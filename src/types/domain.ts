@@ -35,6 +35,17 @@ export interface Profile {
   updated_at: string;
 }
 
+/** "People You May Know" card data — from get_suggested_users() (0024). */
+export interface SuggestedUser {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url: string | null;
+  bio: string;
+  follower_count: number;
+  public_message_count: number;
+}
+
 /**
  * Milestone 1: the message owner's single official reply, shown directly
  * below the message wherever it's displayed (wall card, message detail

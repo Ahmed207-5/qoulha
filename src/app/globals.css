@@ -35,6 +35,16 @@
   .gradient-text {
     @apply bg-gradient-to-l from-brand-400 via-brand-500 to-brand-700 bg-clip-text text-transparent;
   }
+
+  /* Horizontal carousels (e.g. suggested-users-carousel.tsx) — native
+     scroll/snap/drag stays, only the scrollbar chrome is hidden. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
