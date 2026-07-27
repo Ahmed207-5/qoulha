@@ -1,3 +1,4 @@
+import './globals.css';
 import type { Metadata } from 'next';
 import { Cairo, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { Providers } from '@/providers/providers';
@@ -17,8 +18,8 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   weight: ['400', '500', '600'],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-const siteName = 'قولها';
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://qoulha.vercel.app';const siteName = 'قولها';
 const siteDescription =
   'قولها هي منصة الرسائل المجهولة العربية. اعمل صفحتك الشخصية، شارك رابطك، واستقبل رسائل صادقة من غير ما حد يعرف مين بعتها.';
 
