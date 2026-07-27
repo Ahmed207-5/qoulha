@@ -97,6 +97,7 @@ export async function getMessageDetail(messageId: string, viewerId?: string): Pr
     repost_count: repostCount ?? 0,
     my_reaction: (myReactionResult.data?.emoji as ReactionEmoji) ?? null,
     reposted_by_me: !!myRepostResult.data,
+    owner_reply: null,
     tags,
   };
 }

@@ -70,6 +70,14 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
 
   const rows = data as unknown as WallRow[];
   const ids = rows.map((r) => r.id);
+  const { data: ownerReplyRows } = ids.length
+  ? await supabase
+      .from('conversation_messages')
+      .select('message_id, content, created_at')
+      .eq('sender_role', 'owner')
+      .in('message_id', ids)
+      .order('created_at', { ascending: false })
+  : { data: [] as { message_id: string; content: string; created_at: string }[] };
 
   // Batched follow-up queries (using .in()) instead of one round trip per
   // card — keeps this at a fixed small number of queries per page load
@@ -116,6 +124,23 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
     tagsMap.set(row.message_id, existing);
   }
 
+  const ownerReplyMap = new Map<
+  string,
+  {
+    content: string;
+    created_at: string;
+  }
+>();
+
+for (const row of ownerReplyRows ?? []) {
+  if (!ownerReplyMap.has(row.message_id)) {
+    ownerReplyMap.set(row.message_id, {
+      content: row.content,
+      created_at: row.created_at,
+    });
+  }
+}
+
   const messages: PublicWallMessage[] = rows
     .map((row): PublicWallMessage | null => {
       const counts = Object.fromEntries(REACTION_EMOJIS.map((e) => [e, 0])) as Record<ReactionEmoji, number>;
@@ -142,7 +167,11 @@ export async function getWallMessagesAction(query: WallQuery): Promise<WallQuery
         repost_count: repostCountMap.get(row.id) ?? 0,
         my_reaction: myReactionMap.get(row.id) ?? null,
         reposted_by_me: myRepostSet.has(row.id),
+
+        owner_reply: ownerReplyMap.get(row.id) ?? null,
+
         tags: tagsMap.get(row.id) ?? [],
+        
       };
     })
     .filter((m): m is PublicWallMessage => m !== null);

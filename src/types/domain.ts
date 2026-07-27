@@ -102,6 +102,14 @@ export interface PublicWallMessage extends InboxMessage {
   my_reaction: ReactionEmoji | null;
   reposted_by_me: boolean;
   /** Phase 2 */
+  /**
+ * Latest public reply from the message owner.
+ * Null when the owner has not replied yet.
+ */
+owner_reply?: {
+  content: string;
+  created_at: string;
+} | null;
   tags: Tag[];
 }
 

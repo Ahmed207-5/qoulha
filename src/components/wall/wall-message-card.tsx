@@ -44,6 +44,25 @@ export function WallMessageCard({
       </p>
       <TagList tags={message.tags} />
 
+{message.owner_reply && (
+  <div className="mt-4 rounded-2xl border border-brand-200/60 bg-brand-50/60 p-3 dark:border-brand-700 dark:bg-brand-900/40">
+    <p className="mb-1 text-xs font-semibold text-brand-600 dark:text-brand-300">
+      رد صاحب الرسالة
+    </p>
+
+    <p className="text-sm leading-relaxed text-brand-900 dark:text-brand-50">
+      <MentionText content={message.owner_reply.content} />
+    </p>
+
+    <p className="mt-2 text-[11px] text-brand-500/60">
+      {formatDistanceToNow(new Date(message.owner_reply.created_at), {
+        addSuffix: true,
+        locale: ar,
+      })}
+    </p>
+  </div>
+)}
+
       <Link href={`/u/${message.recipient.username}`} className="mt-4 flex items-center gap-2">
         <div className="h-6 w-6 overflow-hidden rounded-full bg-brand-500/10">
           {message.recipient.avatar_url && (

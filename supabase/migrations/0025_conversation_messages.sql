@@ -50,6 +50,25 @@ create policy "Owner or original sender can view their conversation"
     or public.is_message_sender(message_id)
   );
 
+-- Public Wall regression fix: the wall shows the owner's latest reply
+-- alongside a published message (this is the one piece of the thread that
+-- was ever meant to be public — same as the old single `replies` row's
+-- "is_published" carve-out). Deliberately narrow and additive:
+--   - sender_role = 'owner' only — the anonymous side of the thread stays
+--     fully private, always, no matter what.
+--   - only once the underlying message is_published — an unpublished
+--     message's owner reply stays private to the two participants, via
+--     the policy above.
+-- This is a second PERMISSIVE policy, OR'd with the one above by Postgres,
+-- so the existing private-conversation-view policy is unchanged and still
+-- applies as-is.
+create policy "Anyone can view the owner's reply on a published message"
+  on public.conversation_messages for select
+  using (
+    sender_role = 'owner'
+    and exists (select 1 from public.messages m where m.id = message_id and m.is_published = true)
+  );
+
 -- Two narrow insert policies (rather than one combined one) so each side's
 -- 10-message cap is enforced independently, purely in SQL, with no way for
 -- either side to spend the other's budget.
