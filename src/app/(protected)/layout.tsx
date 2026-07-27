@@ -5,6 +5,16 @@ import { MobileNav } from '@/components/dashboard/mobile-nav';
 import { MobileTopbar } from '@/components/dashboard/mobile-topbar';
 import { RealtimeProvider } from '@/components/dashboard/realtime-provider';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
+import type { Metadata } from 'next';
+
+// Applies to every page under this route group (dashboard, inbox, settings,
+// analytics, suggested-users) — private, authenticated-only pages that
+// should never be indexed. robots.txt already disallows these paths for
+// well-behaved crawlers; this meta-robots tag is the more reliable signal
+// against indexing if one is ever discovered via an external link.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

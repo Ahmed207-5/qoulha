@@ -16,9 +16,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const tag = await getTagBySlug(slug);
   if (!tag) return { title: 'التاج غير موجود' };
+
+  const title = `#${tag.name}`;
+  const description = `رسائل بتاج #${tag.name} على قولها`;
+  const tagUrl = `/tag/${tag.slug}`;
+
   return {
-    title: `#${tag.name}`,
-    description: `رسائل بتاج #${tag.name} على قولها`,
+    title,
+    description,
+    keywords: [tag.name, 'رسائل مجهولة', 'قولها'],
+    alternates: { canonical: tagUrl },
+    openGraph: { title, description, url: tagUrl },
+    twitter: { card: 'summary_large_image', title, description },
   };
 }
 

@@ -5,7 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'البحث', description: 'دور على رسائل ومستخدمين على قولها' };
+export const metadata: Metadata = {
+  title: 'البحث',
+  description: 'دور على رسائل ومستخدمين على قولها',
+  alternates: { canonical: '/search' },
+};
 
 export default async function SearchPage() {
   const supabase = await createClient();

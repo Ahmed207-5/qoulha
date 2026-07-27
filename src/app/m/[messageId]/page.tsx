@@ -24,13 +24,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const excerpt = message.content.length > 120 ? `${message.content.slice(0, 120)}…` : message.content;
   const title = `رسالة ${CATEGORY_META[message.category].label} إلى ${message.recipient.full_name} — قولها`;
+  const messageUrl = `/m/${messageId}`;
+
+  // Unpublished messages only ever render for their owner (RLS returns null
+  // for anyone else, hence the notFound() above) — there's no one else to
+  // share this URL with, so skip building full public share metadata for it
+  // and keep it out of the index.
+  if (!message.is_published) {
+    return { title, description: excerpt, robots: { index: false, follow: false } };
+  }
 
   return {
     title,
     description: excerpt,
+    keywords: [CATEGORY_META[message.category].label, message.recipient.full_name, 'رسائل مجهولة', 'قولها'],
+    alternates: { canonical: messageUrl },
     openGraph: {
       title,
       description: excerpt,
+      url: messageUrl,
       images: message.recipient.avatar_url ? [message.recipient.avatar_url] : undefined,
       type: 'article',
     },
@@ -38,6 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title,
       description: excerpt,
+      images: message.recipient.avatar_url ? [message.recipient.avatar_url] : undefined,
     },
   };
 }

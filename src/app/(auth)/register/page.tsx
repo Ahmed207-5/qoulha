@@ -4,7 +4,7 @@ import { GoogleSignInButton } from '@/components/auth/google-signin-button';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'إنشاء حساب' };
+export const metadata: Metadata = { title: 'إنشاء حساب', alternates: { canonical: '/register' } };
 
 export default function RegisterPage() {
   return (

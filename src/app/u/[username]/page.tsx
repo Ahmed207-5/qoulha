@@ -33,12 +33,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const profile = await getPublicProfileByUsername(username);
   if (!profile) return { title: 'الصفحة غير موجودة' };
 
+  const title = `${profile.full_name} (@${profile.username})`;
+  const description = profile.bio || `ابعت رسالة مجهولة لـ ${profile.full_name} على قولها`;
+  const profileUrl = `/u/${profile.username}`;
+
   return {
-    title: `${profile.full_name} (@${profile.username})`,
-    description: profile.bio || `ابعت رسالة مجهولة لـ ${profile.full_name} على قولها`,
+    title,
+    description,
+    keywords: [profile.full_name, profile.username, 'رسائل مجهولة', 'قولها'],
+    alternates: { canonical: profileUrl },
     openGraph: {
+      type: 'profile',
       title: `${profile.full_name} على قولها`,
-      description: profile.bio || undefined,
+      description,
+      url: profileUrl,
+      images: profile.avatar_url ? [profile.avatar_url] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${profile.full_name} على قولها`,
+      description,
       images: profile.avatar_url ? [profile.avatar_url] : undefined,
     },
   };

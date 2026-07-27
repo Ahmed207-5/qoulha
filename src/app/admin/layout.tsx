@@ -4,6 +4,11 @@ import { Sidebar } from '@/components/dashboard/sidebar';
 import { MobileNav } from '@/components/dashboard/mobile-nav';
 import { MobileTopbar } from '@/components/dashboard/mobile-topbar';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();

@@ -5,7 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'الترند', description: 'أكتر الرسائل والتاجات والكتّاب ترند على قولها' };
+export const metadata: Metadata = {
+  title: 'الترند',
+  description: 'أكتر الرسائل والتاجات والكتّاب ترند على قولها',
+  alternates: { canonical: '/trending' },
+};
 
 export default async function TrendingPage() {
   const supabase = await createClient();

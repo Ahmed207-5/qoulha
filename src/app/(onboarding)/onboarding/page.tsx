@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/form-elements';
 import { FloatingBackground } from '@/components/landing/floating-background';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'إعداد صفحتك' };
+export const metadata: Metadata = { title: 'إعداد صفحتك', robots: { index: false, follow: false } };
 
 export default async function OnboardingPage() {
   const supabase = await createClient();

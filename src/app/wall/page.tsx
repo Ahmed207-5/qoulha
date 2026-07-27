@@ -13,6 +13,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'الحائط العام',
   description: 'رسائل حقيقية اختار أصحابها ينشروها على قولها',
+  alternates: { canonical: '/wall' },
 };
 
 export default async function WallPage() {

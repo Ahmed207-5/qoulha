@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'تسجيل الدخول' };
+export const metadata: Metadata = { title: 'تسجيل الدخول', alternates: { canonical: '/login' } };
 
 export default function LoginPage() {
   return (
