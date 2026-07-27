@@ -52,19 +52,26 @@ export const metadata: Metadata = {
       follow: true,
     },
   },
-  openGraph: {
-    type: 'website',
-    locale: 'ar_EG',
-    siteName,
-    url: siteUrl,
-    title: 'قولها — قول اللي جوّاك من غير ما حد يعرف مين انت',
-    description: siteDescription,
-  },
+ openGraph: {
+  title: "قولها — قول اللي جواك من غير ما حد يعرف مين أنت",
+ description:
+  "قول اللي جواك من غير ما حد يعرف مين أنت. استقبل رسائل مجهولة ورد عليها وشاركها مع الجميع بأمان.",
+  images: [
+    {
+      url: "/og-image.png",
+      width: 1200,
+      height: 630,
+      alt: "Qoulha",
+    },
+  ],
+},
   twitter: {
-    card: 'summary_large_image',
-    title: 'قولها — قول اللي جوّاك من غير ما حد يعرف مين انت',
-    description: siteDescription,
-  },
+  card: "summary_large_image",
+  title: "قولها",
+  description:
+  "قول اللي جواك من غير ما حد يعرف مين أنت. استقبل رسائل مجهولة ورد عليها وشاركها مع الجميع بأمان.",
+  images: ["/og-image.png"],
+},
   manifest: '/manifest.json',
 };
 
