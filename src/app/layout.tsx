@@ -4,7 +4,6 @@ import { Providers } from '@/providers/providers';
 import { Toaster } from 'sonner';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { GoogleAnalyticsPageView } from '@/components/analytics/google-analytics-pageview';
-import './globals.css';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
