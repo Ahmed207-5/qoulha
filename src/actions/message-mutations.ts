@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { reportMessageSchema } from '@/lib/validations/message';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
+import { containsProfanity } from "@/lib/profanity";
 
 async function assertOwnsMessage(messageId: string): Promise<{ userId: string } | { error: string }> {
   const supabase = await createClient();

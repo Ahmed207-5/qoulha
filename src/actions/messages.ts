@@ -46,7 +46,14 @@ export async function sendMessageAction(formData: unknown): Promise<ActionResult
   // 3. Profanity / spam filter — content that trips this is flagged, not silently dropped,
   //    so recipients can still review it and report if needed (avoids false-positive censorship)
   const cleaned = cleanForStorage(parsed.data.content);
-  const flagged = containsProfanity(cleaned);
+const flagged = containsProfanity(cleaned);
+
+if (flagged) {
+  return {
+    success: false,
+    error: "الرسالة تحتوي على ألفاظ غير لائقة.",
+  };
+}
 
   // Generate the id ourselves rather than using .select() to read it back —
   // requesting RETURNING data on this INSERT breaks anonymous sending
