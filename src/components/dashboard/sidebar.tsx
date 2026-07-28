@@ -6,6 +6,7 @@ import { LayoutDashboard, Inbox, Settings, MessageCircleHeart, LogOut, Shield, B
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/actions/auth';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { FollowUs } from '@/components/shared/follow-us';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
@@ -70,6 +71,10 @@ export function Sidebar({
           </Link>
         )}
       </nav>
+
+      <div className="border-t border-brand-200/30 pt-3 dark:border-white/10">
+        <FollowUs variant="compact" />
+      </div>
 
       <form action={signOutAction} className="px-4 pb-6">
         <button className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/5">

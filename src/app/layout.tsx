@@ -19,7 +19,8 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://qoulha.vercel.app';const siteName = 'قولها';
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://qoulha.vercel.app';
+const siteName = 'قولها';
 const siteDescription =
   'قولها هي منصة الرسائل المجهولة العربية. اعمل صفحتك الشخصية، شارك رابطك، واستقبل رسائل صادقة من غير ما حد يعرف مين بعتها.';
 

@@ -1,16 +1,26 @@
 'use client';
 
 import * as React from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import { updateReportStatusAction, deleteReportedMessageAction, suspendUserAction } from '@/actions/admin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form-elements';
-import { Search, Ban } from 'lucide-react';
+import { Search, Ban, CheckCircle2, EyeOff, Clock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type { MessageCategory } from '@/types/domain';
 
 const REASON_LABELS: Record<string, string> = {
   harassment: 'تحرش', spam: 'سبام', hate_speech: 'خطاب كراهية',
   sexual_content: 'محتوى جنسي', threat: 'تهديد', other: 'أخرى',
+};
+
+const STATUS_META: Record<string, { label: string; color: string; icon: typeof Clock }> = {
+  pending: { label: 'قيد الانتظار', color: '#E8A87C', icon: Clock },
+  reviewed: { label: 'تمت المراجعة', color: '#5A9BD8', icon: ShieldCheck },
+  actioned: { label: 'تم اتخاذ إجراء', color: '#C77B6F', icon: CheckCircle2 },
+  dismissed: { label: 'متجاهَل', color: '#9CA3AF', icon: EyeOff },
 };
 
 export interface ReportRow {
@@ -38,24 +48,48 @@ export function AdminReportsList({ initialReports }: { initialReports: ReportRow
   const [reports, setReports] = React.useState(initialReports);
   const [search, setSearch] = React.useState('');
   const [reasonFilter, setReasonFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set());
 
-  async function handleDismiss(reportId: string) {
-    setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: 'dismissed' } : r)));
-    const result = await updateReportStatusAction(reportId, 'dismissed');
-    if (!result.success) toast.error('حدث خطأ');
+  function withPending<T>(reportId: string, fn: () => Promise<T>) {
+    setPendingIds((prev) => new Set(prev).add(reportId));
+    return fn().finally(() => {
+      setPendingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(reportId);
+        return next;
+      });
+    });
+  }
+
+  async function handleStatusChange(reportId: string, status: 'reviewed' | 'dismissed') {
+    const prevReports = reports;
+    setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, status } : r)));
+    const result = await withPending(reportId, () => updateReportStatusAction(reportId, status));
+    if (!result.success) {
+      setReports(prevReports);
+      toast.error(result.error ?? 'حدث خطأ');
+    } else {
+      toast.success(status === 'reviewed' ? 'اتعلّم إن البلاغ اتراجع' : 'تم تجاهل البلاغ');
+    }
   }
 
   async function handleRemoveMessage(reportId: string, messageId: string) {
+    const prevReports = reports;
     setReports((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: 'actioned' } : r)));
-    const result = await deleteReportedMessageAction(messageId, reportId);
-    if (!result.success) toast.error('حدث خطأ');
-    else toast.success('تم حذف الرسالة');
+    const result = await withPending(reportId, () => deleteReportedMessageAction(messageId, reportId));
+    if (!result.success) {
+      setReports(prevReports);
+      toast.error(result.error ?? 'حدث خطأ');
+    } else {
+      toast.success('تم حذف الرسالة');
+    }
   }
 
   async function handleBanPublisher(recipientId: string) {
     const result = await suspendUserAction(recipientId, true);
     if (!result.success) {
-      toast.error('حدث خطأ');
+      toast.error(result.error ?? 'حدث خطأ');
       return;
     }
     toast.success('تم إيقاف الحساب');
@@ -72,6 +106,7 @@ export function AdminReportsList({ initialReports }: { initialReports: ReportRow
 
   const filteredReports = reports.filter((r) => {
     if (reasonFilter !== 'all' && r.reason !== reasonFilter) return false;
+    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     if (search && !r.message?.content.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -90,6 +125,16 @@ export function AdminReportsList({ initialReports }: { initialReports: ReportRow
         </div>
         <select
           className="rounded-xl border border-brand-200/60 bg-white/70 px-3 py-2 text-xs dark:border-white/10 dark:bg-white/[0.04]"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">كل الحالات</option>
+          {Object.entries(STATUS_META).map(([key, meta]) => (
+            <option key={key} value={key}>{meta.label}</option>
+          ))}
+        </select>
+        <select
+          className="rounded-xl border border-brand-200/60 bg-white/70 px-3 py-2 text-xs dark:border-white/10 dark:bg-white/[0.04]"
           value={reasonFilter}
           onChange={(e) => setReasonFilter(e.target.value)}
         >
@@ -105,12 +150,25 @@ export function AdminReportsList({ initialReports }: { initialReports: ReportRow
       ) : (
         filteredReports.map((report) => {
           const recipient = getRecipient(report.message);
+          const statusMeta = STATUS_META[report.status] ?? STATUS_META.pending!;
+          const StatusIcon = statusMeta.icon;
+          const isPending = pendingIds.has(report.id);
+
           return (
             <div key={report.id} className="glass rounded-3xl p-5">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-500">
-                  {REASON_LABELS[report.reason] ?? report.reason}
-                </span>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-500">
+                    {REASON_LABELS[report.reason] ?? report.reason}
+                  </span>
+                  <span
+                    className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={{ backgroundColor: `${statusMeta.color}20`, color: statusMeta.color }}
+                  >
+                    <StatusIcon className="h-3 w-3" />
+                    {statusMeta.label}
+                  </span>
+                </div>
                 <span className="text-xs text-brand-500/60">
                   بلّغ عنه @{report.reporter?.username ?? 'مجهول'}
                 </span>
@@ -121,32 +179,43 @@ export function AdminReportsList({ initialReports }: { initialReports: ReportRow
                   {report.message.content}
                 </p>
               )}
-              {report.details && <p className="mt-2 text-xs text-brand-500/70">تفاصيل: {report.details}</p>}
+              {report.details && (
+                <p className="mt-2 text-xs text-brand-500/70">
+                  <span className="font-semibold">تفاصيل البلاغ:</span> {report.details}
+                </p>
+              )}
               {recipient && (
                 <p className="mt-2 text-xs text-brand-500/60">
                   ناشر الرسالة: @{recipient.username} {recipient.is_suspended && '(موقوف)'}
                 </p>
               )}
+              <p className="mt-2 text-[11px] text-brand-500/50">
+                {formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: ar })}
+              </p>
 
-              {report.status === 'pending' && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => report.message && handleRemoveMessage(report.id, report.message.id)}>
-                    حذف الرسالة
+              <div className={cn('mt-3 flex flex-wrap gap-2', isPending && 'opacity-60')}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => report.message && handleRemoveMessage(report.id, report.message.id)}
+                >
+                  حذف الرسالة
+                </Button>
+                {recipient && !recipient.is_suspended && (
+                  <Button variant="destructive" size="sm" disabled={isPending} onClick={() => handleBanPublisher(report.message!.recipient_id)}>
+                    <Ban className="h-3.5 w-3.5" />
+                    إيقاف الناشر
                   </Button>
-                  {recipient && !recipient.is_suspended && (
-                    <Button variant="destructive" size="sm" onClick={() => handleBanPublisher(report.message!.recipient_id)}>
-                      <Ban className="h-3.5 w-3.5" />
-                      إيقاف الناشر
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={() => handleDismiss(report.id)}>
-                    تجاهل البلاغ
-                  </Button>
-                </div>
-              )}
-              {report.status !== 'pending' && (
-                <p className="mt-2 text-xs font-medium text-green-600">تم اتخاذ إجراء</p>
-              )}
+                )}
+                <Button variant="secondary" size="sm" disabled={isPending} onClick={() => handleStatusChange(report.id, 'reviewed')}>
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  تمت المراجعة
+                </Button>
+                <Button variant="ghost" size="sm" disabled={isPending} onClick={() => handleStatusChange(report.id, 'dismissed')}>
+                  تجاهل البلاغ
+                </Button>
+              </div>
             </div>
           );
         })

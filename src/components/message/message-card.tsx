@@ -5,19 +5,18 @@ import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import Link from 'next/link';
-import { Heart, Share2, Trash2, Flag, MoreVertical, MessagesSquare } from 'lucide-react';
+import { Heart, Share2, Trash2, MoreVertical, MessagesSquare } from 'lucide-react';
 import { CATEGORY_META, MOOD_META } from '@/constants/message';
 import type { InboxMessage } from '@/types/domain';
 import { cn } from '@/lib/utils';
 import { toggleFavoriteAction, togglePublishAction, deleteMessageAction, markMessageReadAction } from '@/actions/message-mutations';
 import { toast } from 'sonner';
-import { ReportDialog } from './report-dialog';
+import { ReportButton } from './report-button';
 import { MentionText } from './mention-text';
 
 export function MessageCard({ message, onDeleted }: { message: InboxMessage; onDeleted?: (id: string) => void }) {
   const [msg, setMsg] = React.useState(message);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [reportOpen, setReportOpen] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
   const category = CATEGORY_META[msg.category];
   const mood = MOOD_META[msg.mood];
@@ -101,13 +100,6 @@ export function MessageCard({ message, onDeleted }: { message: InboxMessage; onD
                 {msg.is_published ? 'شيل من الحائط' : 'انشر على الحائط'}
               </button>
               <button
-                onClick={() => { setReportOpen(true); setMenuOpen(false); }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-right hover:bg-brand-500/5"
-              >
-                <Flag className="h-3.5 w-3.5" />
-                إبلاغ
-              </button>
-              <button
                 onClick={handleDelete}
                 className="flex w-full items-center gap-2 px-4 py-2 text-right text-red-500 hover:bg-red-500/5"
               >
@@ -136,12 +128,13 @@ export function MessageCard({ message, onDeleted }: { message: InboxMessage; onD
         <span className="text-[11px] text-brand-500/60">
           {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true, locale: ar })}
         </span>
-        <button onClick={handleFavorite} className="rounded-full p-1.5 hover:bg-red-500/10">
-          <Heart className={cn('h-4 w-4', msg.is_favorited ? 'fill-red-500 text-red-500' : 'text-brand-400')} />
-        </button>
+        <div className="flex items-center gap-1">
+          <ReportButton messageId={msg.id} />
+          <button onClick={handleFavorite} className="rounded-full p-1.5 hover:bg-red-500/10">
+            <Heart className={cn('h-4 w-4', msg.is_favorited ? 'fill-red-500 text-red-500' : 'text-brand-400')} />
+          </button>
+        </div>
       </div>
-
-      {reportOpen && <ReportDialog messageId={msg.id} onClose={() => setReportOpen(false)} />}
     </motion.div>
   );
 }

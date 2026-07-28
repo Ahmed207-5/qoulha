@@ -39,7 +39,11 @@ export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export const reportMessageSchema = z.object({
   messageId: z.string().uuid(),
   reason: z.enum(['harassment', 'spam', 'hate_speech', 'sexual_content', 'threat', 'other']),
-  details: z.string().max(500).optional(),
+  details: z
+    .string()
+    .trim()
+    .min(10, 'اكتب تفاصيل أكتر (10 أحرف على الأقل)')
+    .max(500, 'التفاصيل أطول من 500 حرف'),
 });
 
 export type ReportMessageInput = z.infer<typeof reportMessageSchema>;

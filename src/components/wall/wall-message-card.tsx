@@ -9,6 +9,7 @@ import { ShareButton } from './share-button';
 import { RepostButton } from './repost-button';
 import { TagList } from '@/components/message/tag-list';
 import { MentionText } from '@/components/message/mention-text';
+import { ReportButton } from '@/components/message/report-button';
 import type { PublicWallMessage } from '@/types/domain';
 
 export function WallMessageCard({
@@ -95,12 +96,16 @@ export function WallMessageCard({
               {message.published_at && formatDistanceToNow(new Date(message.published_at), { addSuffix: true, locale: ar })}
             </span>
             <ShareButton url={messageUrl} text={message.content} />
+            <ReportButton messageId={message.id} />
           </div>
         </div>
       ) : (
         // Not on the wall — reactions/comments/repost/share only apply to public wall
         // messages, and sharing a private link wouldn't resolve for anyone else anyway.
-        <p className="mt-4 text-[11px] text-brand-500/60">رسالة خاصة — لسه متنشرتش على الحائط</p>
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-[11px] text-brand-500/60">رسالة خاصة — لسه متنشرتش على الحائط</p>
+          <ReportButton messageId={message.id} />
+        </div>
       )}
     </div>
   );

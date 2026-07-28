@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'البلاغات' };
 
 export default async function AdminReportsPage() {
-  const reports = await getReportsList('pending');
+  const reports = await getReportsList('all');
 
   return (
     <div className="space-y-6">

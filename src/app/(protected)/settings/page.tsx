@@ -4,6 +4,7 @@ import { ProfileSettingsForm } from '@/components/settings/profile-settings-form
 import { PasswordSettingsForm } from '@/components/settings/password-settings-form';
 import { PreferencesPanel } from '@/components/settings/preferences-panel';
 import { DangerZone } from '@/components/settings/danger-zone';
+import { FollowUs } from '@/components/shared/follow-us';
 import type { Profile } from '@/types/domain';
 import type { Metadata } from 'next';
 
@@ -46,6 +47,11 @@ export default async function SettingsPage() {
       <Card className="p-6">
         <h2 className="mb-4 font-display text-sm font-bold text-brand-950 dark:text-white">منطقة الخطر</h2>
         <DangerZone />
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="mb-4 font-display text-sm font-bold text-brand-950 dark:text-white">تابعنا</h2>
+        <FollowUs />
       </Card>
     </div>
   );
