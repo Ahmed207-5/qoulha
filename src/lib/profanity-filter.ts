@@ -5,7 +5,7 @@ import { Filter } from 'bad-words';
 // abuse, not building an exhaustive blocklist (a longer list has diminishing
 // returns and becomes a maintenance burden — pair this with user reports).
 const ARABIC_BLOCKLIST: string[] = [
-  'كسمك', 'ابن الكلب', 'يا كلب', 'يا حيوان', 'وسخ',
+  'كسمك', 'كلب','ابن الكلب', 'يا كلب', 'يا حيوان', 'وسخ',
 ];
 
 const filter = new Filter();

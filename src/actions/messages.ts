@@ -48,6 +48,9 @@ export async function sendMessageAction(formData: unknown): Promise<ActionResult
   const cleaned = cleanForStorage(parsed.data.content);
 const flagged = containsProfanity(cleaned);
 
+console.log("FLAGGED:", flagged);
+console.log("CONTENT:", cleaned);
+
 if (flagged) {
   return {
     success: false,
