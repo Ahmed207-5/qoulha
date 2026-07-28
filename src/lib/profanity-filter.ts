@@ -5,7 +5,44 @@ import { Filter } from 'bad-words';
 // abuse, not building an exhaustive blocklist (a longer list has diminishing
 // returns and becomes a maintenance burden — pair this with user reports).
 const ARABIC_BLOCKLIST: string[] = [
-  'كسمك', 'كلب','ابن الكلب', 'يا كلب', 'يا حيوان', 'وسخ',
+  // سباب عام
+  'كلب',
+  'حمار',
+  'حيوان',
+  'عرص',
+  'خول',
+  'وسخ',
+  'قذر',
+  'زبالة',
+  'غبي',
+  'اهبل',
+  'حقير',
+  'نجس',
+  'معفن',
+
+  // شتائم مركبة
+  'ابن الكلب',
+  'ابن الوسخه',
+  'ابن الوسخة',
+  'يا كلب',
+  'يا عرص',
+  'يا خول',
+  'يا حيوان',
+
+  // ألفاظ جنسية
+  'كسم',
+  'كسمك',
+  'كس',
+  'زب',
+  'نيك',
+  'متناك',
+  'شرموط',
+  'شرموطه',
+  'شرموطة',
+  'قحبه',
+  'قحبة',
+  'زاني',
+  'زانية',
 ];
 
 const filter = new Filter();
