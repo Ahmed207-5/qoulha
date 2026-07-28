@@ -12,8 +12,19 @@ const filter = new Filter();
 
 export function containsProfanity(text: string): boolean {
   if (filter.isProfane(text)) return true;
-  const normalized = text.toLowerCase();
-  return ARABIC_BLOCKLIST.some((word) => normalized.includes(word));
+
+  const normalized = text
+    .toLowerCase()
+    .replace(/[ًٌٍَُِّْـ]/g, "")
+    .replace(/[^\u0600-\u06FFa-z0-9\s]/gi, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/\s+/g, ""); // إزالة جميع المسافات
+
+  return ARABIC_BLOCKLIST.some((word) =>
+    normalized.includes(word.replace(/\s+/g, ""))
+  );
 }
 
 export function cleanForStorage(text: string): string {
