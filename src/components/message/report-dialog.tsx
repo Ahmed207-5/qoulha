@@ -58,15 +58,14 @@ export function ReportDialog({ messageId, onClose }: { messageId: string; onClos
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-6"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 sm:p-6"
         onClick={onClose}
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           onClick={(e) => e.stopPropagation()}
-          className="glass-strong w-full max-w-sm rounded-3xl p-6"
-        >
+          className="glass-strong w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl p-6"        >
           <div className="mb-4 flex items-center justify-between">
             <h3 className="flex items-center gap-2 font-display font-bold text-brand-950 dark:text-white">
               <Flag className="h-4 w-4 text-red-500" />
