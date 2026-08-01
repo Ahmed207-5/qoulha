@@ -55,7 +55,7 @@ export default function InstallPrompt() {
       <h3 style={{ marginBottom: 8 }}>📱 ثبّت تطبيق قولها</h3>
 
       <p style={{ marginBottom: 16 }}>
-        افتح قولها من شاشة هاتفك واستمتع بتجربة أسرع.
+       ثبت قولها دلوقتي وافتحه مباشرة من شاشة هاتفك، واستقبل الرسائل والإشعارات بسهولةوأمان.
       </p>
 
       <button
