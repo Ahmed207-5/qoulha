@@ -1,5 +1,158 @@
 # Changelog
 
+## [Fix] — Mentions and @all were broken; restored
+
+Root-caused with an actual local Postgres instance (applied all 29
+migrations against it and exercised every path as the real `authenticated`
+role, not a superuser bypass) rather than guessing. Two real bugs, both
+purely database-side — no TypeScript changed:
+
+- **The actual cause**: `admin_create_daily_post()`, `admin_archive_daily_post()`
+  (0026) and `broadcast_admin_announcement()` (0028) were each missing the
+  `grant execute ... to authenticated` that every other RPC-callable
+  function in this project has right next to its definition (see 0004,
+  0011, 0019, 0020, 0024 — this project does not rely on Postgres's
+  default PUBLIC-execute grant for functions). Without it, calling any of
+  the three failed with "permission denied for function...". Concretely:
+  admins couldn't create a Today's Space post at all, so there was never
+  an active post to mention anyone *in* — making Today's Space's
+  @username mentions and @all both look broken. Wall-post @all failed the
+  same way. Wall comments and Today's Space replies were never affected
+  by this one — they insert directly into a table and their mention
+  trigger fires implicitly, which never needed an execute grant. Fixed by
+  adding the three missing grants (`0029_fix_mention_grants_and_broadcast.sql`).
+- **A related fragility, hardened defensively**: `notify_on_mention()`
+  and `notify_on_daily_space_mention()` already verify the row's author
+  is an admin with a direct check before broadcasting — calling through
+  `broadcast_admin_announcement()`, which *also* independently re-derives
+  admin status and raises on any mismatch, meant a divergence there would
+  abort the whole trigger — rolling back the entire insert, including any
+  ordinary @username mentions bundled in the same comment/reply. Split
+  into an internal, no-recheck function (used by the triggers, which
+  already did the real check) and the original public, self-checking
+  wrapper (kept only for the one legitimate client-facing caller — Wall
+  post publishing).
+- Verified end-to-end against a real Postgres instance, as the
+  `authenticated` role with RLS enforced (not a superuser bypass): normal
+  @username mentions (comments, Today's Space replies), @all by an admin
+  in all four surfaces (Wall posts, Wall comments, Today's Space posts,
+  Today's Space replies) broadcasting correctly, @all by a regular user
+  doing nothing and raising no error, and a non-admin directly calling
+  `broadcast_admin_announcement`/`admin_create_daily_post` still
+  correctly rejected.
+
+## [@all] — Admin-only broadcast mention
+
+Added one special, reserved mention token — `@all` — usable only by
+admins, across every place @mentions already exist: Wall posts, Wall
+comments, Today's Space, and Today's Space replies. Publishing it
+notifies every user with one `admin_broadcast` notification
+(💜 إعلان جديد من Qoulha / افتح وشوف الجديد.) linking back to wherever it
+was published.
+
+- **Reused, not rebuilt** (`0028_admin_all_mention.sql`): the exact same
+  `@username` token loop already inside `notify_on_mention()` (wall
+  comments, 0021) and `notify_on_daily_space_mention()` (Today's Space
+  replies, 0026) now special-cases the token `all` — if the row's author
+  is an admin, broadcast; otherwise it falls through to the pre-existing
+  per-username lookup completely unchanged. For a regular user, `@all`
+  behaves exactly as it always would have (i.e. nothing, unless a real
+  user is literally named "all") — no new validation, no new UI, no way
+  for them to "use" it.
+- **Today's Space itself**: `admin_create_daily_post()` is already
+  admin-gated, so `@all` in a daily post's own content always qualifies —
+  checked with the same token-matching, no author check needed.
+- **Wall posts are the one app-code case**: a message's content is
+  written by whoever *sent* it (sometimes anonymously — see
+  0022/0023_message_mentions.sql), a different person from the recipient
+  who later chooses to publish it. So `@all` there is checked against the
+  *publisher* at the moment of publishing (`togglePublishAction` in
+  `message-mutations.ts`), not the original author — via a new
+  `containsAllMention()` helper (`src/lib/mentions.ts`) and an RPC call to
+  the new `broadcast_admin_announcement()`, which re-checks `is_admin()`
+  itself regardless of what the caller already checked (same defensive
+  posture as every other admin-only `SECURITY DEFINER` function here).
+  Only fires on the actual unpublished→published transition, not on
+  every re-toggle.
+- Existing `mention`/`daily_space_mention` notifications, comment/reply
+  posting, and message publishing are all otherwise byte-for-byte
+  unchanged.
+
+## ["Today's Space"] — Discoverability & daily-engagement redesign
+
+Moved Today's Space off the Wall and into its own dedicated, sidebar-linked
+page, and made it something users get pulled back to daily instead of
+just stumbling across.
+
+- **Moved, not duplicated**: removed `<TodaySpaceSection/>` from
+  `src/app/wall/page.tsx`; it now renders as the body of the new
+  `src/app/(protected)/today-space/page.tsx`. Every existing interaction —
+  posting the one public reply, liking, replying to replies, @mentions,
+  the archive browser — is the exact same component tree, untouched.
+- **Sidebar entry**: `💜 مساحة اليوم`, directly below `قد تعرفهم`, in both
+  `Sidebar` (desktop) and `MobileNav` (bottom tab bar) — added as one more
+  row in each nav list, same markup shape as every other item.
+- **Unread dot** (`0027_daily_space_engagement.sql`): a single-row-per-user
+  `daily_post_views` table — an *upsert*, not a per-view log — records the
+  last daily post a user has seen. `getDailySpaceUnreadStatus()` compares
+  that against the current active post to light a small purple dot on the
+  sidebar item; opening `/today-space` clears it immediately via
+  `markDailySpaceViewedAction()` + `router.refresh()` (`DailySpaceViewMarker`).
+- **Publish notification**: `admin_create_daily_post()` now also bulk-inserts
+  a `daily_space_published` notification for every non-suspended user in
+  the same statement that publishes the post — no per-user loop. Clicking
+  it opens `/today-space`, same as a `daily_space_mention` notification
+  (previously routed to `/wall`, now updated to match the move).
+
+## ["Today's Space" (مساحة اليوم)] — Platform-managed daily post
+
+A new, self-contained section on the Home/Wall page, sitting above the
+Public Wall and deliberately never mixed with it: one admin-authored
+daily post (question / discussion / poll / challenge / message) is
+active at a time, every user gets one public top-level reply on it, can
+like replies, can reply to other users' replies (one level deep), and
+can @mention people — which notifies them, same as wall comments do.
+Older daily posts are archived (not deleted) and stay browsable from an
+in-page archive viewer. No existing feature was touched beyond two
+additive, backwards-compatible enum extensions.
+
+### Database (`0026_daily_space.sql`)
+- `daily_posts` — admin-authored posts. A partial unique index on
+  `status` enforces "only one active at a time" at the database level;
+  all writes go through `admin_create_daily_post()` /
+  `admin_archive_daily_post()` (`SECURITY DEFINER`, both re-check
+  `is_admin()` themselves) — there is no client-facing insert/update
+  policy at all.
+- `daily_post_replies` — one level of nesting via `parent_reply_id`. A
+  second partial unique index caps top-level replies at one per user per
+  post (excluding soft-deleted rows), while nested replies-to-replies are
+  uncapped. Insert policy only accepts new replies on the currently
+  active post and only allows nesting one level deep.
+- `daily_post_reply_likes` — plain like join table, same shape as
+  `message_reactions`.
+- `notify_on_daily_space_mention()` — @mention detection, notification
+  dedupe/self-mention/max-5 rules copied exactly from
+  `notify_on_mention()` (`0021_comment_mentions.sql`), just retargeted at
+  replies and a new `daily_space_mention` notification type so it
+  deep-links to `/wall` instead of a wall message.
+- Extends (never replaces) `notification_type` and `activity_action`,
+  following the precedent set in `0015_extend_notification_types.sql`.
+
+### App
+- `src/services/daily-space-service.ts` / `src/actions/daily-space.ts` —
+  reads and mutations, mirroring the batched-count-query pattern in
+  `wall-service.ts` and the rate-limit/profanity/mention-cap pipeline in
+  `comments.ts` (new `checkDailySpaceReplyRateLimit`, reusing
+  `checkReactionRateLimit` for likes).
+- `src/components/daily-space/*` — `TodaySpaceSection` (server entry,
+  renders nothing if there's nothing to show), `TodaySpaceCard`,
+  `DailySpaceReplyItem`/`DailySpaceReplyForm` (reusing the existing
+  `useMentionInput` hook and `MentionAutocomplete`/`MentionText`
+  components as-is), `DailySpaceLikeButton`, `DailySpaceArchive`.
+- `src/app/admin/daily-space/` + `AdminDailySpaceManager` — publish a new
+  daily post (auto-archives the current one) or end it early, following
+  the existing `admin/reports` page's layout and action conventions.
+
 ## [Phase 2] — Growth & Discovery: Tags, XP/Levels, Badges, Trending, Leaderboard, Search, Full Profile System, Sharing
 
 The largest single addition to Qoulha: turns the social layer built in

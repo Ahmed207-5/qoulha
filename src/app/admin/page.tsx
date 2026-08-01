@@ -21,12 +21,15 @@ export default async function AdminDashboardPage() {
         <StatCard label="بلاغات معلّقة" value={stats.pendingReports} icon={Flag} />
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Link href="/admin/users" className="text-sm font-semibold text-brand-500 hover:underline">
           إدارة المستخدمين ←
         </Link>
         <Link href="/admin/reports" className="text-sm font-semibold text-brand-500 hover:underline">
           مراجعة البلاغات ←
+        </Link>
+        <Link href="/admin/daily-space" className="text-sm font-semibold text-brand-500 hover:underline">
+          إدارة مساحة اليوم ←
         </Link>
         <Link href="/admin/logs" className="text-sm font-semibold text-brand-500 hover:underline">
           سجل النشاط ←

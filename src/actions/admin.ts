@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
-import type { ReportStatus } from '@/types/domain';
+import type { ReportStatus, DailyPost } from '@/types/domain';
+import { createDailyPostSchema, type CreateDailyPostInput } from '@/lib/validations/daily-space';
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -78,5 +79,54 @@ export async function deleteReportedMessageAction(messageId: string, reportId: s
   if (reportError) return { success: false, error: 'اتحذفت الرسالة لكن حصل خطأ في تحديث حالة البلاغ' };
 
   revalidatePath('/admin/reports');
+  return { success: true };
+}
+
+// ---------- Today's Space (0026_daily_space.sql) ----------
+
+export interface CreateDailyPostActionResult extends ActionResult {
+  post?: DailyPost;
+}
+
+/**
+ * Publishes a new daily post for Today's Space. Any currently active post
+ * is archived automatically, atomically, inside admin_create_daily_post()
+ * (SECURITY DEFINER) — never done as two separate client round-trips,
+ * which could otherwise race or leave zero/two active posts momentarily.
+ */
+export async function createDailyPostAction(input: CreateDailyPostInput): Promise<CreateDailyPostActionResult> {
+  const parsed = createDailyPostSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'بيانات غير صحيحة' };
+  }
+
+  const admin = await assertIsAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_create_daily_post', {
+    p_type: parsed.data.type,
+    p_title: parsed.data.title ?? null,
+    p_content: parsed.data.content,
+  });
+
+  if (error || !data) return { success: false, error: 'حدث خطأ أثناء نشر منشور اليوم' };
+
+  revalidatePath('/wall');
+  revalidatePath('/admin/daily-space');
+  return { success: true, post: data as DailyPost };
+}
+
+/** Manually ends the current daily post early, without publishing a replacement. */
+export async function archiveDailyPostAction(dailyPostId: string): Promise<ActionResult> {
+  const admin = await assertIsAdmin();
+  if ('error' in admin) return { success: false, error: admin.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_archive_daily_post', { p_id: dailyPostId });
+  if (error) return { success: false, error: 'حدث خطأ' };
+
+  revalidatePath('/wall');
+  revalidatePath('/admin/daily-space');
   return { success: true };
 }

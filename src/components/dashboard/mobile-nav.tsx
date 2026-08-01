@@ -2,17 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Inbox, Settings, Users } from 'lucide-react';
+import { LayoutDashboard, Inbox, Settings, Users, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { href: '/inbox', label: 'الرسائل', icon: Inbox },
   { href: '/suggested-users', label: 'قد تعرفهم', icon: Users },
+  { href: '/today-space', label: 'مساحة اليوم', icon: Sparkles },
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 
-export function MobileNav() {
+export function MobileNav({ hasUnseenDailySpace = false }: { hasUnseenDailySpace?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -28,7 +29,12 @@ export function MobileNav() {
               active ? 'text-brand-500' : 'text-brand-700/60 dark:text-brand-200/60'
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <span className="relative">
+              <item.icon className="h-5 w-5" />
+              {item.href === '/today-space' && hasUnseenDailySpace && (
+                <span className="absolute -end-0.5 -top-0.5 h-2 w-2 rounded-full bg-brand-500" aria-label="محتوى جديد" />
+              )}
+            </span>
             {item.label}
           </Link>
         );

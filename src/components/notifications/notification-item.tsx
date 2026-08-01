@@ -23,6 +23,15 @@ function getNotificationHref(notification: Notification): string {
     case 'reaction':
     case 'new_repost':
       return notification.payload.message_id ? `/m/${notification.payload.message_id}` : '/wall';
+    case 'daily_space_mention':
+    case 'daily_space_published':
+      return '/today-space';
+    case 'admin_broadcast':
+      // @all can be published as a wall message/comment or inside Today's
+      // Space — whichever payload field is present tells us which.
+      if (notification.payload.message_id) return `/m/${notification.payload.message_id}`;
+      if (notification.payload.daily_post_id) return '/today-space';
+      return '/wall';
     case 'new_follower':
       return notification.actor ? `/u/${notification.actor.username}` : '/dashboard';
     case 'moderation':
@@ -82,7 +91,7 @@ export function NotificationItem({
             </p>
           </>
         ) : (
-          <p className="text-sm leading-snug text-brand-900 dark:text-brand-50">
+          <p className="whitespace-pre-line text-sm leading-snug text-brand-900 dark:text-brand-50">
             {getNotificationText(notification.type, notification.actor?.full_name)}
           </p>
         )}

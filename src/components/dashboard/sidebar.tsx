@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Inbox, Settings, MessageCircleHeart, LogOut, Shield, BarChart3, Users } from 'lucide-react';
+import { LayoutDashboard, Inbox, Settings, MessageCircleHeart, LogOut, Shield, BarChart3, Users, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOutAction } from '@/actions/auth';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { href: '/inbox', label: 'الرسائل', icon: Inbox },
   { href: '/suggested-users', label: 'قد تعرفهم', icon: Users },
+  { href: '/today-space', label: '💜 مساحة اليوم', icon: Sparkles },
   { href: '/analytics', label: 'الإحصائيات', icon: BarChart3 },
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
@@ -20,10 +21,12 @@ export function Sidebar({
   isAdmin,
   userId,
   initialUnreadCount,
+  hasUnseenDailySpace = false,
 }: {
   isAdmin: boolean;
   userId: string;
   initialUnreadCount: number;
+  hasUnseenDailySpace?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -53,6 +56,9 @@ export function Sidebar({
             >
               <item.icon className="h-4.5 w-4.5" />
               {item.label}
+              {item.href === '/today-space' && hasUnseenDailySpace && (
+                <span className="ms-auto h-2 w-2 rounded-full bg-brand-500" aria-label="محتوى جديد" />
+              )}
             </Link>
           );
         })}

@@ -2,12 +2,14 @@ import { z } from 'zod';
 
 export const MESSAGE_MAX_LENGTH = 500;
 
-// Shared with commentSchema below — @mentions (in messages and comments)
-// are capped at 5 per the same rule, reusing this one check for both.
+// Shared with commentSchema below (and, via export, with any other text
+// field that supports @mentions — e.g. dailyReplySchema in
+// validations/daily-space.ts) — @mentions are capped at 5 everywhere per
+// this one rule, instead of re-deriving it per feature.
 const MAX_MENTIONS_PER_TEXT = 5;
-const mentionCountRefinement = (val: string) =>
+export const mentionCountRefinement = (val: string) =>
   (val.match(/@[A-Za-z0-9_]{2,30}/g) ?? []).length <= MAX_MENTIONS_PER_TEXT;
-const MENTION_COUNT_MESSAGE = `أقصى حاجة ${MAX_MENTIONS_PER_TEXT} إشارات (@)`;
+export const MENTION_COUNT_MESSAGE = `أقصى حاجة ${MAX_MENTIONS_PER_TEXT} إشارات (@)`;
 
 // Only development skips the client-side requirement that a token be
 // present — production always requires a real Turnstile token, and the

@@ -11,9 +11,13 @@ export type ReportStatus = 'pending' | 'reviewed' | 'actioned' | 'dismissed';
 // added to the existing set. 'reaction' and 'moderation' were already
 // present and are reused as-is for those two event types.
 // 'mention': @mentions in Public Wall comments (0021_comment_mentions.sql).
+// 'daily_space_mention': @mentions inside Today's Space replies
+// (0026_daily_space.sql) — kept distinct from 'mention' so it deep-links
+// into Today's Space instead of a wall message.
 export type NotificationType =
   | 'new_message' | 'reaction' | 'system' | 'moderation'
-  | 'new_reply' | 'new_comment' | 'new_repost' | 'new_follower' | 'mention';
+  | 'new_reply' | 'new_comment' | 'new_repost' | 'new_follower' | 'mention'
+  | 'daily_space_mention' | 'daily_space_published' | 'admin_broadcast';
 // Milestone 1: reaction set changed to the ASK.fm-style five below.
 // Backed by the new message_reactions table (see 0007_message_reactions.sql),
 // not the original anonymous `reactions` table.
@@ -146,6 +150,12 @@ export interface NotificationPayload {
   // full message. Its presence (not message_id/comment_id) is what tells
   // the UI this mention can't be navigated to.
   mention_snippet?: string;
+  // 'daily_space_mention' only — see 0026_daily_space.sql.
+  daily_post_id?: string;
+  reply_id?: string;
+  // 'admin_broadcast' (the @all mention, see 0028_admin_all_mention.sql)
+  // reuses whichever of message_id/comment_id/daily_post_id already
+  // identifies where the @all text was published — no new field needed.
 }
 
 export interface Notification {
@@ -221,4 +231,47 @@ export interface FeaturedMessage {
   id: string;
   message_id: string;
   featured_date: string;
+}
+
+// ---------- Today's Space (platform-managed daily post) ----------
+// See 0026_daily_space.sql. Entirely separate from the Public Wall: a
+// daily post is authored by an admin (never a regular user), only one is
+// ever `status: 'active'`, and every other one is `'archived'` — still
+// readable, just no longer accepting new replies.
+
+export type DailyPostType = 'question' | 'discussion' | 'poll' | 'challenge' | 'message';
+export type DailyPostStatus = 'active' | 'archived';
+
+export interface DailyPost {
+  id: string;
+  type: DailyPostType;
+  title: string | null;
+  content: string;
+  status: DailyPostStatus;
+  published_at: string;
+  archived_at: string | null;
+}
+
+/** A preview row for the archive list — no need for the full reply thread there. */
+export interface DailyPostSummary extends DailyPost {
+  reply_count: number;
+}
+
+/**
+ * A reply on a daily post. `replies` holds one level of nested
+ * replies-to-this-reply (only populated on top-level replies — the
+ * schema caps threads at two levels deep, see the insert policy on
+ * daily_post_replies).
+ */
+export interface DailyPostReply {
+  id: string;
+  daily_post_id: string;
+  author_id: string;
+  parent_reply_id: string | null;
+  content: string;
+  created_at: string;
+  author: Pick<Profile, 'username' | 'full_name' | 'avatar_url'>;
+  like_count: number;
+  liked_by_me: boolean;
+  replies: DailyPostReply[];
 }

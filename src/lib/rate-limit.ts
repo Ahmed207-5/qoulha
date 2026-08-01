@@ -109,6 +109,33 @@ export async function checkConversationRateLimit(identifier: string): Promise<{ 
   return { allowed: true };
 }
 
+// ---------------------------------------------------------------------------
+// Today's Space (0026_daily_space.sql) — replies (top-level or nested)
+// share one budget, separate from the wall's comment limiter so activity
+// on one feature never eats into the other's allowance. Likes reuse
+// checkReactionRateLimit above since that limiter is already generic
+// (keyed by fingerprint, not tied to the `message_reactions` table).
+// ---------------------------------------------------------------------------
+
+const dailySpaceReplyRatelimit = hasUpstash
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 daily-space replies per minute per user
+      analytics: true,
+      prefix: 'qoulha:daily-space-reply',
+    })
+  : null;
+
+export async function checkDailySpaceReplyRateLimit(identifier: string): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
+  if (!dailySpaceReplyRatelimit) {
+    console.warn('[rate-limit] Upstash not configured; skipping daily-space reply rate limit check.');
+    return { allowed: true };
+  }
+  const { success, reset } = await dailySpaceReplyRatelimit.limit(identifier);
+  if (!success) return { allowed: false, retryAfterSeconds: Math.ceil((reset - Date.now()) / 1000) };
+  return { allowed: true };
+}
+
 const followRatelimit = hasUpstash
   ? new Ratelimit({
       redis: Redis.fromEnv(),

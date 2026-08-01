@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/dashboard/sidebar';
 import { MobileNav } from '@/components/dashboard/mobile-nav';
 import { MobileTopbar } from '@/components/dashboard/mobile-topbar';
 import { getUnreadNotificationCount } from '@/services/notifications-service';
+import { getDailySpaceUnreadStatus } from '@/services/daily-space-service';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -22,14 +23,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // single layer for an admin-only surface.
   if (!profile?.is_admin) redirect('/dashboard');
 
-  const unreadCount = await getUnreadNotificationCount(user.id);
+  const [unreadCount, hasUnseenDailySpace] = await Promise.all([
+    getUnreadNotificationCount(user.id),
+    getDailySpaceUnreadStatus(user.id),
+  ]);
 
   return (
     <div className="min-h-screen lg:pr-64">
-      <Sidebar isAdmin={true} userId={user.id} initialUnreadCount={unreadCount} />
+      <Sidebar isAdmin={true} userId={user.id} initialUnreadCount={unreadCount} hasUnseenDailySpace={hasUnseenDailySpace} />
       <MobileTopbar userId={user.id} initialUnreadCount={unreadCount} />
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-8 lg:pb-8">{children}</main>
-      <MobileNav />
+      <MobileNav hasUnseenDailySpace={hasUnseenDailySpace} />
     </div>
   );
 }
