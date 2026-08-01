@@ -18,7 +18,9 @@ export function usePushNotifications() {
 
         const token = await requestNotificationPermission();
 
-        if (!token) return;
+        console.log("🔥 FCM Token:", token);
+
+         if (!token) return;
 
         const { error } = await supabase
           .from("user_push_tokens")
