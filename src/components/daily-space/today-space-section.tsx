@@ -17,7 +17,7 @@ export async function TodaySpaceSection({ viewerId }: { viewerId?: string }) {
         <div className="rounded-[2rem] border border-brand-400/20 bg-gradient-to-br from-brand-400/10 via-brand-500/5 to-transparent p-6 text-center">
           <p className="text-sm text-brand-700/80 dark:text-brand-200/80">
             {posts.length > 0
-              ? 'محدش نشر منشور اليوم لسه، تابعوا الأرشيف لحد ما ينزل واحد جديد'
+              ? 'منشور النهاردة منزلش لسة,تابع الأرضيف لحد ما ينزل'
               : 'لسه محدش نشر أي منشور في مساحة اليوم، تابعونا قريبًا'}
           </p>
           <div className="mt-3 flex justify-center">
