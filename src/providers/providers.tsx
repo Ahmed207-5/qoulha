@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/contexts/theme-context';
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -13,6 +14,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       })
   );
+
+  usePushNotifications();
 
   return (
     <QueryClientProvider client={queryClient}>
