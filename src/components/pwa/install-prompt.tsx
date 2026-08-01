@@ -52,10 +52,10 @@ export default function InstallPrompt() {
         boxShadow: "0 8px 30px rgba(0,0,0,.3)",
       }}
     >
-      <h3 style={{ marginBottom: 8 }}>📱 ثبّت تطبيق قولها</h3>
+      <h3 style={{ marginBottom: 8 }}>📱 ثبت تطبيق قولها</h3>
 
       <p style={{ marginBottom: 16 }}>
-       ثبت قولها دلوقتي وافتحه مباشرة من شاشة هاتفك، واستقبل الرسائل والإشعارات بسهولةوأمان.
+       ثبت قولها دلوقتي وافتحه مباشرة من شاشة هاتفك، واستقبل الرسائل والإشعارات بسهولة وأمان.
       </p>
 
       <button
