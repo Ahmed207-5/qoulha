@@ -53,16 +53,24 @@ export async function dispatchPushForNewNotifications(params: {
     }
 
     const { data, error } = await query;
-    if (error) {
-      console.error('[push] failed to look up newly created notifications:', error);
-      return;
-    }
-    if (!data || data.length === 0) return;
 
-    // Broadcasts (daily_space_published, admin_broadcast) can match one
-    // row per user platform-wide — send concurrently. sendPushForNotification
-    // never throws, so Promise.all is safe here.
-    await Promise.all((data as NotificationRow[]).map((row) => sendPushForNotification(row)));
+console.log("[push] lookup result:", data);
+
+if (error) {
+  console.error("[push] lookup error:", error);
+  return;
+}
+
+if (!data || data.length === 0) {
+  console.log("[push] no notifications found");
+  return;
+}
+
+console.log("[push] sending", data.length, "notifications");
+
+await Promise.all(
+  (data as NotificationRow[]).map((row) => sendPushForNotification(row))
+);
   } catch (error) {
     console.error('[push] unexpected error dispatching push for new notifications:', error);
   }
