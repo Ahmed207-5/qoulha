@@ -47,7 +47,7 @@ function getMessagingInstance(): Messaging {
 // with zero changes. The proxy defers the real initialization above until
 // a method is actually called at request time.
 export const adminMessaging: Messaging = new Proxy({} as Messaging, {
-  get(_target, prop, _receiver) {
+  get(_target, prop) {
     const instance = getMessagingInstance();
     const value = Reflect.get(instance, prop, instance);
     return typeof value === "function" ? value.bind(instance) : value;
