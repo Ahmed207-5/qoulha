@@ -6,6 +6,7 @@ import { computeFingerprint, getRequestIp } from '@/lib/fingerprint';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 /**
  * Reposts (or un-reposts) a published message to the caller's own profile.
@@ -32,10 +33,22 @@ export async function toggleRepostAction(messageId: string, repost: boolean): Pr
       return { success: false, error: 'عملت ريبوست كتير على السريع، خد نفسك شوية' };
     }
 
+    const since = new Date().toISOString();
     const { error } = await supabase.from('reposts').insert({ original_message_id: messageId, reposted_by: user.id });
     // Unique-violation just means they'd already reposted it — treat as a
     // successful no-op rather than surfacing a confusing error.
     if (error && error.code !== '23505') return { success: false, error: 'حدث خطأ' };
+
+    // notify_on_repost() (0016) fires on the insert above and notifies the
+    // original message's recipient — a no-op here (nothing new to find)
+    // on the unique-violation/already-reposted path.
+    if (!error) {
+      await dispatchPushForNewNotifications({
+        since,
+        types: ['new_repost'],
+        payloadContains: { message_id: messageId, actor_id: user.id },
+      });
+    }
   } else {
     const { data, error } = await supabase
       .from('reposts')

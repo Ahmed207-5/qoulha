@@ -6,6 +6,7 @@ import { computeFingerprint, getRequestIp } from '@/lib/fingerprint';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 export async function toggleFollowAction(targetUserId: string, follow: boolean): Promise<ActionResult> {
   const supabase = await createClient();
@@ -30,9 +31,21 @@ export async function toggleFollowAction(targetUserId: string, follow: boolean):
   }
 
   if (follow) {
+    const since = new Date().toISOString();
     const { error } = await supabase.from('follows').insert({ follower_id: user.id, following_id: targetUserId });
     // Unique-violation just means they're already following — idempotent no-op.
     if (error && error.code !== '23505') return { success: false, error: 'حدث خطأ' };
+
+    // notify_on_follow() (0016) fires on the insert above, notifying
+    // targetUserId — a no-op here on the already-following path.
+    if (!error) {
+      await dispatchPushForNewNotifications({
+        since,
+        types: ['new_follower'],
+        userId: targetUserId,
+        payloadContains: { actor_id: user.id },
+      });
+    }
   } else {
     const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', targetUserId);
     if (error) return { success: false, error: 'حدث خطأ' };

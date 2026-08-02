@@ -8,6 +8,7 @@ import { computeFingerprint, getRequestIp } from '@/lib/fingerprint';
 import { verifyTurnstile } from '@/lib/captcha';
 import { headers } from 'next/headers';
 import type { ActionResult } from './auth';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 export async function sendMessageAction(formData: unknown): Promise<ActionResult> {
   const parsed = sendMessageSchema.safeParse(formData);
@@ -66,6 +67,7 @@ if (flagged) {
   // messages.id column has no default we depend on, supplying our own
   // UUID is simplest and sidesteps the issue completely.
   const messageId = crypto.randomUUID();
+  const since = new Date().toISOString();
 
   const { error } = await supabase.from('messages').insert({
     id: messageId,
@@ -81,6 +83,15 @@ if (flagged) {
   if (error) {
     return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة، حاول مرة أخرى' };
   }
+
+  // notify_on_new_message() (recipient) and notify_on_message_mention()
+  // (any @mentions in the content) both already fired as triggers on the
+  // insert above — this just forwards whatever they created to push.
+  await dispatchPushForNewNotifications({
+    since,
+    types: ['new_message', 'mention'],
+    payloadContains: { message_id: messageId },
+  });
 
   if (parsed.data.tags && parsed.data.tags.length > 0) {
     // Best-effort — tags are a nice-to-have; a failure here must never

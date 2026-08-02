@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
 import type { DailyPostReply } from '@/types/domain';
 import { getArchivedDailyPosts, getDailyPostById, getDailyPostReplies, type DailyPostArchivePage } from '@/services/daily-space-service';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 export interface DailyReplyActionResult extends ActionResult {
   reply?: DailyPostReply;
@@ -59,6 +60,7 @@ export async function createDailyReplyAction(input: {
     return { success: false, error: 'الرد فيه ألفاظ غير مسموح بيها' };
   }
 
+  const since = new Date().toISOString();
   const { data, error } = await supabase
     .from('daily_post_replies')
     .insert({
@@ -79,6 +81,16 @@ export async function createDailyReplyAction(input: {
     }
     return { success: false, error: 'حدث خطأ أثناء إرسال ردك، جرّب منشور اليوم لسه نشط' };
   }
+
+  // notify_on_daily_space_mention() (any @username mentions) and — if the
+  // author is an admin and wrote "@all" — the internal admin broadcast
+  // both already fired as triggers on the insert above, both keyed by
+  // this reply's id.
+  await dispatchPushForNewNotifications({
+    since,
+    types: ['daily_space_mention', 'admin_broadcast'],
+    payloadContains: { reply_id: data.id },
+  });
 
   interface ReplyRow {
     id: string;

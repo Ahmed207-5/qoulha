@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
 import { containsProfanity } from "@/lib/profanity";
 import { containsAllMention } from '@/lib/mentions';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 async function assertOwnsMessage(messageId: string): Promise<{ userId: string } | { error: string }> {
   const supabase = await createClient();
@@ -89,10 +90,21 @@ export async function togglePublishAction(messageId: string, published: boolean)
       // broadcast_admin_announcement() re-checks is_admin() itself (see
       // 0028_admin_all_mention.sql) — this check here is just to skip the
       // RPC call entirely for the common non-admin case.
-      await supabase.rpc('broadcast_admin_announcement', {
+      const since = new Date().toISOString();
+      const { error: broadcastError } = await supabase.rpc('broadcast_admin_announcement', {
         p_payload: { message_id: messageId },
         p_exclude_user_id: owner.userId,
       });
+
+      // Bulk-inserts one 'admin_broadcast' row per non-suspended user
+      // (except the publisher) — keyed by this message's id.
+      if (!broadcastError) {
+        await dispatchPushForNewNotifications({
+          since,
+          types: ['admin_broadcast'],
+          payloadContains: { message_id: messageId },
+        });
+      }
     }
   }
 

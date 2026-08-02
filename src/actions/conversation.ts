@@ -9,6 +9,7 @@ import { MAX_CONVERSATION_MESSAGES_PER_SIDE, CONVERSATION_LIMIT_REACHED_TEXT } f
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { ConversationMessage, ConversationSenderRole } from '@/types/domain';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 export interface ConversationActionResult {
   success: boolean;
@@ -87,6 +88,7 @@ export async function sendConversationMessageAction(formData: unknown): Promise<
     return { success: false, error: 'رسالتك فيها ألفاظ غير مسموح بيها' };
   }
 
+  const since = new Date().toISOString();
   const { data, error } = await supabase
     .from('conversation_messages')
     .insert({ message_id: parsed.data.messageId, sender_role: role, content: cleaned })
@@ -124,6 +126,17 @@ export async function sendConversationMessageAction(formData: unknown): Promise<
     });
     return { success: false, error: 'حدث خطأ أثناء إرسال الرسالة' };
   }
+
+  // notify_on_conversation_message() (0025) already fired as a trigger on
+  // the insert above — 'new_reply' when the owner just replied (notifies
+  // the original anonymous sender), 'new_message' when the anonymous
+  // sender replied back (notifies the owner). This forwards whichever one
+  // it created to push.
+  await dispatchPushForNewNotifications({
+    since,
+    types: ['new_reply', 'new_message'],
+    payloadContains: { message_id: parsed.data.messageId },
+  });
 
   revalidatePath(`/m/${parsed.data.messageId}`);
   return { success: true, message: data as ConversationMessage };

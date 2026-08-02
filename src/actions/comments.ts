@@ -8,6 +8,7 @@ import { computeFingerprint, getRequestIp } from '@/lib/fingerprint';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import type { Comment } from '@/types/domain';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 export interface CommentsPage {
   comments: Comment[];
@@ -97,6 +98,7 @@ export async function createCommentAction(formData: unknown): Promise<CommentAct
     return { success: false, error: 'التعليق فيه ألفاظ غير مسموح بيها' };
   }
 
+  const since = new Date().toISOString();
   const { data, error } = await supabase
     .from('comments')
     .insert({ message_id: parsed.data.messageId, author_id: user.id, content: cleaned })
@@ -106,6 +108,17 @@ export async function createCommentAction(formData: unknown): Promise<CommentAct
     .single();
 
   if (error || !data) return { success: false, error: 'حدث خطأ أثناء إرسال التعليق' };
+
+  // notify_on_comment() (recipient), notify_on_mention() (any @username
+  // mentions), and — if the author is an admin and wrote "@all" —
+  // broadcast_admin_announcement() all already fired as triggers on the
+  // insert above. All three notification types are keyed by this
+  // comment's id, so one lookup forwards whichever of them fired.
+  await dispatchPushForNewNotifications({
+    since,
+    types: ['new_comment', 'mention', 'admin_broadcast'],
+    payloadContains: { comment_id: data.id },
+  });
 
   revalidatePath(`/m/${parsed.data.messageId}`);
   return { success: true, comment: normalizeCommentRow(data as unknown as CommentRow) };

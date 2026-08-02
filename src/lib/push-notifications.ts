@@ -4,15 +4,18 @@ import { getNotificationText } from '@/constants/notifications';
 import type { NotificationPayload, NotificationType } from '@/types/domain';
 
 /**
- * Shape of a row from `public.notifications`, as delivered by the
- * Supabase Database Webhook on INSERT (see
- * supabase/migrations/0030_push_notifications_webhook.sql). This is the
- * single choke point for push delivery: every notification-creating path
- * in the schema (new message, reply, comment, reaction, repost, follow,
- * mention, daily space, admin broadcast, moderation — see
+ * Shape of a row from `public.notifications`. Every notification-creating
+ * path in the schema (new message, reply, comment, reaction, repost,
+ * follow, mention, daily space, admin broadcast, moderation — see
  * 0016/0021/0022/0025/0026/0027/0028/0029) ends by inserting a row here,
- * whether directly or through create_notification(), so hooking the table
- * itself instead of each individual trigger guarantees nothing is missed.
+ * whether directly or through create_notification().
+ *
+ * There is no Database Webhook involved (not every Supabase project has
+ * `supabase_functions.http_request`/pg_net available) — instead, each
+ * server action that performs one of those inserts calls this function
+ * directly right afterwards, via the small lookup helper in
+ * src/lib/push-dispatch.ts. This function itself doesn't know or care
+ * where its caller found the row.
  */
 export interface NotificationRow {
   id: string;

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type { ActionResult } from './auth';
 import type { ReportStatus, DailyPost } from '@/types/domain';
 import { createDailyPostSchema, type CreateDailyPostInput } from '@/lib/validations/daily-space';
+import { dispatchPushForNewNotifications } from '@/lib/push-dispatch';
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -61,6 +62,7 @@ export async function deleteReportedMessageAction(messageId: string, reportId: s
   // rather than silently reporting success while the reported message
   // stayed exactly as it was (see 0013_fix_admin_message_moderation.sql —
   // this update previously always matched zero rows).
+  const since = new Date().toISOString();
   const { data, error } = await supabase
     .from('messages')
     .update({ is_deleted: true, is_published: false })
@@ -70,6 +72,15 @@ export async function deleteReportedMessageAction(messageId: string, reportId: s
   if (error || !data || data.length === 0) {
     return { success: false, error: 'تعذر حذف الرسالة المُبلّغ عنها' };
   }
+
+  // notify_on_moderation() (0016) fires on this update — since the admin
+  // acting here is never the message's own recipient, it always creates a
+  // 'moderation' row with action: 'deleted' for that recipient.
+  await dispatchPushForNewNotifications({
+    since,
+    types: ['moderation'],
+    payloadContains: { message_id: messageId, action: 'deleted' },
+  });
 
   const { error: reportError } = await supabase
     .from('reports')
@@ -104,6 +115,7 @@ export async function createDailyPostAction(input: CreateDailyPostInput): Promis
   if ('error' in admin) return { success: false, error: admin.error };
 
   const supabase = await createClient();
+  const since = new Date().toISOString();
   const { data, error } = await supabase.rpc('admin_create_daily_post', {
     p_type: parsed.data.type,
     p_title: parsed.data.title ?? null,
@@ -112,9 +124,23 @@ export async function createDailyPostAction(input: CreateDailyPostInput): Promis
 
   if (error || !data) return { success: false, error: 'حدث خطأ أثناء نشر منشور اليوم' };
 
+  const post = data as DailyPost;
+
+  // admin_create_daily_post() (0027/0029) bulk-inserts a
+  // 'daily_space_published' row for every non-suspended user, and — if
+  // the content contains "@all" — an 'admin_broadcast' row for everyone
+  // too. Both are keyed by this post's id, and this can match one row
+  // per user platform-wide; dispatchPushForNewNotifications() sends
+  // those concurrently.
+  await dispatchPushForNewNotifications({
+    since,
+    types: ['daily_space_published', 'admin_broadcast'],
+    payloadContains: { daily_post_id: post.id },
+  });
+
   revalidatePath('/wall');
   revalidatePath('/admin/daily-space');
-  return { success: true, post: data as DailyPost };
+  return { success: true, post };
 }
 
 /** Manually ends the current daily post early, without publishing a replacement. */
