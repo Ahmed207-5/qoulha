@@ -119,6 +119,17 @@ export async function sendPushForNotification(row: NotificationRow): Promise<voi
       },
     });
 
+console.log("[push] success:", response.successCount);
+console.log("[push] failure:", response.failureCount);
+
+response.responses.forEach((r, i) => {
+  console.log("[push] token", i, {
+    success: r.success,
+    code: r.error?.code,
+    message: r.error?.message,
+  });
+});
+
     if (response.failureCount > 0) {
       const deadTokens: string[] = [];
 
