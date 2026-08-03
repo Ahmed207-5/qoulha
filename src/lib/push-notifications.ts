@@ -103,14 +103,27 @@ export async function sendPushForNotification(row: NotificationRow): Promise<voi
     const body = getNotificationText(row.type, actorName);
     const path = getNotificationPath(row.type, row.payload, actorUsername);
 
+    // Deliberately data-only (no top-level `notification` field). Per
+    // Firebase's official Web Push docs
+    // (https://firebase.google.com/docs/cloud-messaging/web/receive-messages,
+    // "Set notification options in the service worker"), a message with a
+    // `notification` payload is auto-displayed by the browser itself, and
+    // whether/how that also invokes the service worker's
+    // onBackgroundMessage handler has proven unreliable in practice for
+    // this app — Admin SDK reported successCount > 0 while Chrome (Windows
+    // and Android) showed nothing. Sending data-only, with every field the
+    // notification needs as a plain string, makes
+    // public/firebase-messaging-sw.js's onBackgroundMessage the single,
+    // deterministic code path that decides what's shown — it's the
+    // documented, reliable alternative for exactly this case. FCM data
+    // payload values must all be strings, hence String(...) below even
+    // though these are already strings today.
     const response = await adminMessaging.sendEachForMulticast({
       tokens,
-      notification: {
-        title: 'قولها',
-        body,
-      },
       data: {
-        url: path,
+        title: 'قولها',
+        body: String(body),
+        url: String(path),
       },
       webpush: {
         fcmOptions: {
@@ -118,17 +131,6 @@ export async function sendPushForNotification(row: NotificationRow): Promise<voi
         },
       },
     });
-
-console.log("[push] success:", response.successCount);
-console.log("[push] failure:", response.failureCount);
-
-response.responses.forEach((r, i) => {
-  console.log("[push] token", i, {
-    success: r.success,
-    code: r.error?.code,
-    message: r.error?.message,
-  });
-});
 
     if (response.failureCount > 0) {
       const deadTokens: string[] = [];
