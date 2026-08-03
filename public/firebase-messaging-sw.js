@@ -1,3 +1,14 @@
+// Carried over from the old public/sw.js (now removed — it registered a
+// second, separate Service Worker whose only job was this): activate this
+// worker immediately instead of waiting for all existing tabs to close.
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(clients.claim());
+});
+
 // notificationclick is registered before importScripts()/firebase.initializeApp()
 // per Firebase's own guidance: "make sure to handle notificationclick before
 // you import FCM functions or libraries. Otherwise, FCM may overwrite the
